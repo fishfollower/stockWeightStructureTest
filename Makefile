@@ -1,6 +1,8 @@
-CASES := $(wildcard testmore/*/)
+CASES := $(wildcard cases/*)
+resfiles := $(foreach dir,$(CASES),$(dir)/res.pdf)
+datfiles := $(foreach dir,$(CASES),$(dir)/Y.tab)
 
-.PHONY: sim clean runsim
+.PHONY: sim clean run printcases
 
 cases/sim1/Y.tab: src/sim1.R
 	echo 'source("src/sim1.R")' | R --slave
@@ -8,10 +10,17 @@ cases/sim1/Y.tab: src/sim1.R
 sim: cases/sim1/Y.tab
 
 clean:
-	rm -f cases/sim1/res.pdf src/*.o src/*.so 
+	rm -f $(resfiles) src/*.o src/*.so
 
-cases/sim1/res.pdf: src/run.R cases/sim1/Y.tab
-	cd cases/sim1; echo 'source("../../src/run.R")' | R --slave
+res.pdf: Y.tab ../../src/gmrf1.cpp ../../src/run.R
+	echo 'source("../../src/run.R")' | R --slave
 
-runsim: cases/sim1/res.pdf
+$(resfiles): src/gmrf1.cpp src/run.R $(datfiles)
+	@$(MAKE) -C $(@D) -i -s -f ../../Makefile res.pdf
 
+run: $(resfiles)
+
+printcases:
+	$(info $$CASES are [$(CASES)])
+	$(info $$resfiles are [$(resfiles)])
+	$(info $$datfiles are [$(datfiles)])
