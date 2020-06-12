@@ -45,7 +45,7 @@ pred<-as.list(sdr, report=TRUE, what="Est")$pred
 predSd<-as.list(sdr, report=TRUE, what="Std")$pred
 
 pdf("res.pdf")
-matplot(pred, type="l", ylim=range(data$Y))
+matplot(pred, type="l", ylim=range(data$Y, na.rm=TRUE))
 #matplot(pred-2*predSd, , type="l", add=TRUE, lty="dotted")
 #matplot(pred+2*predSd, type="l", add=TRUE, lty="dotted")
 matplot(data$Y, add=TRUE)
