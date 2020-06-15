@@ -1,52 +1,87 @@
 library(TMB)
 
-# setup data 
-data <- list()
+runit <- function(mode=1, trans=identity, res=FALSE){
+  # setup data 
+  data <- list()
 
-Y <- as.matrix(read.table("Y.tab", head=FALSE))
-r <- as.vector(row(Y))
-c <- as.vector(col(Y))
-n <- length(r)
-W.r <- W.c <- W.d <- matrix(0,nrow=n, ncol=n)
+  Y <- as.matrix(read.table("Y.tab", head=FALSE))
+  Y[abs(Y)<1.0e-12] <- NA
+  jac <- -sum(log(abs(numDeriv:::grad(trans,Y))))
+  Y <- trans(Y)  
+    
+  r <- as.vector(row(Y))
+  c <- as.vector(col(Y))
+  n <- length(r)
+  W.r <- W.c <- W.d <- matrix(0,nrow=n, ncol=n)
 
-for(i in 1:n){
-  for(j in 1:n){
-    W.r[i,j]<- (r[i]==r[j])&(abs(c[i]-c[j])==1)
-    W.c[i,j]<- (c[i]==c[j])&(abs(r[i]-r[j])==1)
-    W.d[i,j]<- (((r[i]-r[j])==1)&((c[i]-c[j])==1))|(((r[i]-r[j])==(-1))&((c[i]-c[j]) ==(-1)))
-  }      
+  for(i in 1:n){
+    for(j in 1:n){
+      W.r[i,j] <- (r[i]==r[j])&(abs(c[i]-c[j])==1)
+      W.c[i,j] <- (c[i]==c[j])&(abs(r[i]-r[j])==1)
+      W.d[i,j] <- (((r[i]-r[j])==1)&((c[i]-c[j])==1))|(((r[i]-r[j])==(-1))&((c[i]-c[j]) ==(-1)))
+    }      
+  }
+  diag(W.r) <- -rowSums(W.r)
+  diag(W.c) <- -rowSums(W.c)
+  diag(W.d) <- -rowSums(W.d)
+
+  data$mode <- mode
+  data$Wr <- W.r
+  data$Wc <- W.c
+  data$Wd <- W.d
+  data$Y <- Y
+
+  # setup parameters
+  param<-list()  
+  if(mode==1){    
+    param$logPhi <- c(0,0,0)
+    param$mu <- numeric(ncol(data$Y))
+    param$logSdProc <- 0
+    param$logSdObs <- 0
+    param$z <- matrix(0,nrow=nrow(data$Y), ncol=ncol(data$Y))
+    ran <- c("z")
+  }
+  if(mode==2){    
+    param$logitRho <- c(0,0,0)
+    param$mu <- numeric(ncol(data$Y))
+    param$logSdProc <- c(0,0)
+    param$logSdObs <- 0
+    param$omega <- matrix(0,nrow=nrow(data$Y), ncol=ncol(data$Y))
+    param$z <- rep(0,(nrow(Y)-1)+ncol(Y))
+    ran <- c("omega","z")
+  }
+  
+  # compile 
+  compile("../../src/gmrf1.cpp")
+  dyn.load(dynlib("../../src/gmrf1"))
+
+  # run model 
+  obj <- MakeADFun(data,param,random=ran, DLL="gmrf1")
+  opt <- nlminb(obj$par, obj$fn, obj$gr)
+  sdr <- sdreport(obj)
+  pred <- as.list(sdr, report=TRUE, what="Est")$pred
+  predSd <- as.list(sdr, report=TRUE, what="Std")$pred
+
+
+  matplot(pred, type="l", ylim=range(data$Y, na.rm=TRUE), main=paste0(mode,",",deparse(substitute(trans))))
+  #matplot(pred-2*predSd, , type="l", add=TRUE, lty="dotted")
+  #matplot(pred+2*predSd, type="l", add=TRUE, lty="dotted")
+  matplot(data$Y, add=TRUE)
+    
+  residual <- matrix(NA, nrow=nrow(Y), ncol=ncol(Y))     
+  if(res){
+    ooa <- oneStepPredict(obj, data.term.indicator="keep", observation.name="Y", discrete=FALSE)
+    residual <- matrix(ooa$residual, nrow=nrow(Y), ncol=ncol(Y))
+    stockassessment:::plotby(row(residual), col(residual), residual)
+    boxplot(residual)   
+  }    
+    
+  return(list(logLik=opt$objective+jac, obj=obj, residual=residual))
 }
-diag(W.r)<- -rowSums(W.r)
-diag(W.c)<- -rowSums(W.c)
-diag(W.d)<- -rowSums(W.d)
 
-data$Wr = W.r
-data$Wc = W.c
-data$Wd = W.d
-data$Y = Y
-
-# setup parameters 
-param<-list()
-param$logPhi<-c(0,0,0)
-param$mu<-numeric(ncol(data$Y))
-param$logSdProc<-0
-param$logSdObs<-0
-param$z<-matrix(0,nrow=nrow(data$Y), ncol=ncol(data$Y))
-
-# compile 
-compile("../../src/gmrf1.cpp")
-dyn.load(dynlib("../../src/gmrf1"))
-
-# run model 
-obj<-MakeADFun(data,param,random="z", DLL="gmrf1")
-opt<- nlminb(obj$par,obj$fn, obj$gr)
-sdr<-sdreport(obj)
-pred<-as.list(sdr, report=TRUE, what="Est")$pred
-predSd<-as.list(sdr, report=TRUE, what="Std")$pred
 
 pdf("res.pdf")
-matplot(pred, type="l", ylim=range(data$Y, na.rm=TRUE))
-#matplot(pred-2*predSd, , type="l", add=TRUE, lty="dotted")
-#matplot(pred+2*predSd, type="l", add=TRUE, lty="dotted")
-matplot(data$Y, add=TRUE)
+  runit(mode=1, res=TRUE)
+  runit(mode=1, trans=log, res=TRUE)  
 dev.off()
+
