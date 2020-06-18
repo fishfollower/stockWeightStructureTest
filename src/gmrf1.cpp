@@ -22,7 +22,7 @@ Type objective_function<Type>::operator() ()
     PARAMETER_VECTOR(logPhi)
     PARAMETER_VECTOR(mu)
     PARAMETER(logSdProc)   
-    PARAMETER(logSdObs)   
+    PARAMETER_VECTOR(logSdObs)   
     PARAMETER_MATRIX(z)
     vector<Type> phi=exp(logPhi);
     
@@ -38,7 +38,7 @@ Type objective_function<Type>::operator() ()
       for(int j=0; j<Y.dim[1]; ++j){
         pred(i,j)=z(i,j)+mu(j);
         if(!isNA(Y(i,j))){
-          nll += -dnorm(Y(i,j),pred(i,j),exp(logSdObs),true)*keep(i,j);
+          nll += -dnorm(Y(i,j),pred(i,j),exp(logSdObs(j)),true)*keep(i,j);
         }
       }
     }
@@ -59,7 +59,7 @@ Type objective_function<Type>::operator() ()
     PARAMETER_VECTOR(mu)
     PARAMETER_VECTOR(logSdProc)
       
-    PARAMETER(logSdObs)   
+    PARAMETER_VECTOR(logSdObs)   
     PARAMETER_ARRAY(omega)
     PARAMETER_VECTOR(z)      
     vector<Type> rho=invlogit(logitRho);
@@ -70,7 +70,7 @@ Type objective_function<Type>::operator() ()
       for(int j=0; j<Y.dim[1]; ++j){
         pred(i,j)=mu(j)+omega(i,j)+z(i-j+(Y.dim[1]-1));
         if(!isNA(Y(i,j))){
-          nll += -dnorm(Y(i,j),pred(i,j),exp(logSdObs),true)*keep(i,j);
+          nll += -dnorm(Y(i,j),pred(i,j),exp(logSdObs(j)),true)*keep(i,j);
         }
       }
     }

@@ -1,6 +1,6 @@
 library(TMB)
 
-runit <- function(mode=1, trans=identity, res=FALSE){
+runit <- function(mode=1, trans=identity, res=FALSE, label=paste0(mode,",",deparse(substitute(trans))), ...){
   # setup data 
   data <- list()
 
@@ -37,7 +37,7 @@ runit <- function(mode=1, trans=identity, res=FALSE){
     param$logPhi <- c(0,0,0)
     param$mu <- numeric(ncol(data$Y))
     param$logSdProc <- 0
-    param$logSdObs <- 0
+    param$logSdObs <- numeric(ncol(data$Y))
     param$z <- matrix(0,nrow=nrow(data$Y), ncol=ncol(data$Y))
     ran <- c("z")
   }
@@ -45,7 +45,7 @@ runit <- function(mode=1, trans=identity, res=FALSE){
     param$logitRho <- c(0,0,0)
     param$mu <- numeric(ncol(data$Y))
     param$logSdProc <- c(0,0)
-    param$logSdObs <- 0
+    param$logSdObs <- numeric(ncol(data$Y))
     param$omega <- matrix(0,nrow=nrow(data$Y), ncol=ncol(data$Y))
     param$z <- rep(0,(nrow(Y)-1)+ncol(Y))
     ran <- c("omega","z")
@@ -56,14 +56,14 @@ runit <- function(mode=1, trans=identity, res=FALSE){
   dyn.load(dynlib("../../src/gmrf1"))
 
   # run model 
-  obj <- MakeADFun(data,param,random=ran, DLL="gmrf1")
+  obj <- MakeADFun(data,param,random=ran, DLL="gmrf1",...)
   opt <- nlminb(obj$par, obj$fn, obj$gr)
   sdr <- sdreport(obj)
   pred <- as.list(sdr, report=TRUE, what="Est")$pred
   predSd <- as.list(sdr, report=TRUE, what="Std")$pred
 
 
-  matplot(pred, type="l", ylim=range(data$Y, na.rm=TRUE), main=paste0(mode,",",deparse(substitute(trans))))
+  matplot(pred, type="l", ylim=range(data$Y, na.rm=TRUE), main=label)
   #matplot(pred-2*predSd, , type="l", add=TRUE, lty="dotted")
   #matplot(pred+2*predSd, type="l", add=TRUE, lty="dotted")
   matplot(data$Y, add=TRUE)
@@ -79,9 +79,13 @@ runit <- function(mode=1, trans=identity, res=FALSE){
   return(list(logLik=opt$objective+jac, obj=obj, residual=residual))
 }
 
+dat <- read.table("Y.tab", head=FALSE)
+mymap <- list(logSdObs=factor(rep(1,ncol(dat))))
 
 pdf("res.pdf")
-  runit(mode=1, res=TRUE)
-  runit(mode=1, trans=log, res=TRUE)  
+  runit(mode=1, res=TRUE, map=mymap)
+  runit(mode=1, trans=log, res=TRUE, map=mymap)  
+  runit(mode=2, res=TRUE, map=mymap)
+  runit(mode=2, trans=log, res=TRUE, map=mymap)  
 dev.off()
 
