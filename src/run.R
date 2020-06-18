@@ -97,5 +97,7 @@ pdf("res.pdf")
   runit(mode=1, trans=log, res=TRUE, map=mymap)  
   runit(mode=2, res=TRUE, map=mymap)
   runit(mode=2, trans=log, res=TRUE, map=mymap)  
+  runit(mode=3, res=TRUE, map=mymap)
+  runit(mode=3, trans=log, res=TRUE, map=mymap)  
 dev.off()
 
