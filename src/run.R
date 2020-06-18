@@ -3,7 +3,7 @@ library(TMB)
 runit <- function(mode=1, trans=identity, res=FALSE, label=paste0(mode,",",deparse(substitute(trans))), ...){
   # setup data 
   data <- list()
-
+  cat("###################\n",getwd(),"\n#####################")
   Y <- as.matrix(read.table("Y.tab", head=FALSE))
   Y[abs(Y)<1.0e-12] <- NA
   jac <- -sum(log(abs(numDeriv:::grad(trans,Y[!is.na(Y)]))))

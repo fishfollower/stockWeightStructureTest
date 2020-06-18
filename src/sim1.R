@@ -29,7 +29,7 @@ Q<-(diag(n)-phi.r*W.r-phi.c*W.c-phi.d*W.d)
 S<-solve(Q)
 x<-MASS:::mvrnorm(1,rep(0,n),Sigma=S)
 
-Y<-matrix(x+rnorm(length(x),0,sd=.1), ncol=nA)
+Y<-exp(matrix(x+rnorm(length(x),0,sd=.1), ncol=nA))
 
 write.table(Y, row.names=FALSE, col.names=FALSE, sep="\t", file="cases/sim1/Y.tab")
 
