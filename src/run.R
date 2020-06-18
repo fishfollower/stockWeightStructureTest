@@ -6,7 +6,7 @@ runit <- function(mode=1, trans=identity, res=FALSE, label=paste0(mode,",",depar
 
   Y <- as.matrix(read.table("Y.tab", head=FALSE))
   Y[abs(Y)<1.0e-12] <- NA
-  jac <- -sum(log(abs(numDeriv:::grad(trans,Y))))
+  jac <- -sum(log(abs(numDeriv:::grad(trans,Y[!is.na(Y)]))))
   Y <- trans(Y)  
     
   r <- as.vector(row(Y))
