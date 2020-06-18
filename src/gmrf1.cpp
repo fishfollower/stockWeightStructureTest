@@ -76,5 +76,64 @@ Type objective_function<Type>::operator() ()
     }
     ADREPORT(pred);
   }
+
+
+  if(mode==3){ // as mode 2, but with correlated obs errors
+
+    DATA_MATRIX(Wr)
+    DATA_MATRIX(Wc)
+    DATA_MATRIX(Wd)
+    DATA_ARRAY(Y)  
+    DATA_ARRAY_INDICATOR(keep,Y);
+    
+    matrix<Type> pred(Y.dim[0],Y.dim[1]);
+    
+    PARAMETER_VECTOR(logitRho)
+    PARAMETER_VECTOR(mu)
+    PARAMETER_VECTOR(logSdProc)
+      
+    PARAMETER_VECTOR(logSdObs)   
+    PARAMETER_ARRAY(omega)
+    PARAMETER_VECTOR(z)
+    PARAMETER(logitRhoObs)
+ 
+    vector<Type> rho=invlogit(logitRho);
+    Type rhoObs = invlogit(logitRhoObs);
+    vector<Type> sdObs = exp(logSdObs);
+    using namespace density;
+    int nA = Y.dim[1];
+    
+    matrix<Type> covObs(nA,nA);
+    for(int i=0;i<nA;i++)
+      for(int j=0;j<nA;j++){
+	covObs(i,j)=pow(rhoObs,Type(abs(i-j)))*sdObs[i]*sdObs[j];
+      }
+    
+    nll += SCALE(SEPARABLE(AR1(rho(1)),AR1(rho(0))),exp(logSdProc(0)))(omega);
+    nll += SCALE(AR1(rho(2)),exp(logSdProc(1)))(z);
+
+    MVNORM_t<Type> neg_log_density(covObs);
+    
+    vector<Type> obsvec(nA); 
+    vector<Type> predvec(nA);
+    data_indicator<vector<Type>,Type> keepvec(nA);
+    
+    for(int i=0; i<Y.dim[0]; ++i){
+      for(int j=0; j<nA; ++j){
+        pred(i,j)=mu(j)+omega(i,j)+z(i-j+(nA-1));
+	obsvec(j) = Y(i,j);
+	predvec(j) = pred(i,j);
+	keepvec(j) = keep(i,j);
+      }
+      if(!isNA(Y(i,0))){ 
+	nll += neg_log_density( obsvec - predvec, keepvec);
+      }
+    }
+    ADREPORT(pred);
+    
+
+  }
+
+  
   return(nll);
 }

@@ -50,6 +50,16 @@ runit <- function(mode=1, trans=identity, res=FALSE, label=paste0(mode,",",depar
     param$z <- rep(0,(nrow(Y)-1)+ncol(Y))
     ran <- c("omega","z")
   }
+  if(mode==3){
+    param$logitRho <- c(0,0,0)
+    param$mu <- numeric(ncol(data$Y))
+    param$logSdProc <- c(0,0)
+    param$logSdObs <- numeric(ncol(data$Y))
+    param$omega <- matrix(0,nrow=nrow(data$Y), ncol=ncol(data$Y))
+    param$z <- rep(0,(nrow(Y)-1)+ncol(Y))
+    param$logitRhoObs <- 0
+    ran <- c("omega","z")
+  }
   
   # compile 
   compile("../../src/gmrf1.cpp")
