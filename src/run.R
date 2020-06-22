@@ -1,6 +1,18 @@
 library(TMB)
 
-runit <- function(mode=1, trans=identity, res=FALSE, label=paste0(mode,",",deparse(substitute(trans))), ...){
+runit <- function(mode=1, transCode=-1, res=FALSE, label=paste0(mode,",",deparse(substitute(trans))), ...){
+
+  ## trans codes: -1 = identity, 0 = log, >0 = power [ x^(transCode) ]
+  trans <- identity
+  invtrans <- identity  
+  if( transCode == 0 ){
+      trans <- log
+      invtrans <- exp
+  } else if( transCode > 0){
+      trans <- function(x) x^(transCode)
+      invtrans <- function(x) x^(1/transCode)
+  }
+    
   # setup data 
   data <- list()
   cat("###################\n",getwd(),"\n#####################")
@@ -50,7 +62,7 @@ runit <- function(mode=1, trans=identity, res=FALSE, label=paste0(mode,",",depar
     param$z <- rep(0,(nrow(Y)-1)+ncol(Y))
     ran <- c("omega","z")
   }
-  if(mode==3){
+  if(mode==3 || mode==4){
     param$logitRho <- c(0,0,0)
     param$mu <- numeric(ncol(data$Y))
     param$logSdProc <- c(0,0)
@@ -58,6 +70,10 @@ runit <- function(mode=1, trans=identity, res=FALSE, label=paste0(mode,",",depar
     param$omega <- matrix(0,nrow=nrow(data$Y), ncol=ncol(data$Y))
     param$z <- rep(0,(nrow(Y)-1)+ncol(Y))
     param$logitRhoObs <- 0
+    if(mode==4){
+        data$trans <- transCode
+        stopifnot(transCode>=0)
+    }
     ran <- c("omega","z")
   }
   
@@ -73,10 +89,10 @@ runit <- function(mode=1, trans=identity, res=FALSE, label=paste0(mode,",",depar
   predSd <- as.list(sdr, report=TRUE, what="Std")$pred
 
 
-  matplot(pred, type="l", ylim=range(data$Y, na.rm=TRUE), main=label)
-  #matplot(pred-2*predSd, , type="l", add=TRUE, lty="dotted")
-  #matplot(pred+2*predSd, type="l", add=TRUE, lty="dotted")
-  matplot(data$Y, add=TRUE)
+  matplot(invtrans(pred), type="l", ylim=range(invtrans(data$Y), na.rm=TRUE), main=label)
+  matplot(invtrans(pred-2*predSd), , type="l", add=TRUE, lty="dotted")
+  matplot(invtrans(pred+2*predSd), type="l", add=TRUE, lty="dotted")
+  matplot(invtrans(data$Y), add=TRUE)
     
   residual <- matrix(NA, nrow=nrow(Y), ncol=ncol(Y))     
   if(res){
@@ -86,7 +102,7 @@ runit <- function(mode=1, trans=identity, res=FALSE, label=paste0(mode,",",depar
     boxplot(residual)   
   }    
     
-  return(list(logLik=opt$objective+jac, obj=obj, residual=residual))
+  return(list(logLik=opt$objective+jac, obj=obj, residual=residual, opt=opt, sdr=sdr))
 }
 
 dat <- read.table("Y.tab", head=FALSE)
@@ -94,10 +110,13 @@ mymap <- list(logSdObs=factor(rep(1,ncol(dat))))
 
 pdf("res.pdf")
   runit(mode=1, res=TRUE, map=mymap)
-  runit(mode=1, trans=log, res=TRUE, map=mymap)  
+  runit(mode=1, trans=0, res=TRUE, map=mymap)  
   runit(mode=2, res=TRUE, map=mymap)
-  runit(mode=2, trans=log, res=TRUE, map=mymap)  
+  runit(mode=2, trans=0, res=TRUE, map=mymap)    
   runit(mode=3, res=TRUE, map=mymap)
-  runit(mode=3, trans=log, res=TRUE, map=mymap)  
+  runit(mode=3, trans=0, res=TRUE, map=mymap)
+  runit(mode=4, trans=0, res=TRUE,map=mymap)
+  runit(mode=4, trans=1/3, res=TRUE,map=mymap)
+  runit(mode=4, trans=1/2, res=TRUE,map=mymap)
 dev.off()
 
