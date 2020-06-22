@@ -1,25 +1,38 @@
 library(TMB)
 
-runit <- function(mode=1, transCode=-1, res=FALSE, label=paste0(mode,",",deparse(substitute(trans))), ...){
+runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=predict-1,...){
 
   ## trans codes: -1 = identity, 0 = log, >0 = power [ x^(transCode) ]
   trans <- identity
-  invtrans <- identity  
+  invtrans <- identity
+  lab <- paste0(mode," , identity")  
   if( transCode == 0 ){
       trans <- log
       invtrans <- exp
+      lab<-paste0(mode," , log")
   } else if( transCode > 0){
       trans <- function(x) x^(transCode)
       invtrans <- function(x) x^(1/transCode)
+      lab <- paste0(mode," , x^",transCode)
   }
+  if(missing(label))label<-lab #paste0(mode,",",deparse(substitute(trans)))
     
   # setup data 
   data <- list()
   cat("###################\n",getwd(),"\n#####################")
-  Y <- as.matrix(read.table("Y.tab", head=FALSE))
-  Y[abs(Y)<1.0e-12] <- NA
-  jac <- -sum(log(abs(numDeriv:::grad(trans,Y[!is.na(Y)]))))
-  Y <- trans(Y)  
+  Yorg <- as.matrix(read.table("Y.tab", head=FALSE))
+  Norg <- as.matrix(read.table("N.tab", head=FALSE))
+  Moorg <- as.matrix(read.table("Mo.tab", head=FALSE))
+  Yorg[abs(Yorg)<1.0e-12] <- NA
+  Y <- trans(Yorg)
+  Y[!(1:nrow(Y)%in%(1:(nrow(Y)-predict))),]<-NA
+  if(cut>0){
+    Yorg<-Yorg[1:(nrow(Yorg)-cut),]
+    Y<-Y[1:(nrow(Y)-cut),]
+    Norg<-Norg[1:(nrow(Norg)-cut),]
+    Moorg<-Moorg[1:(nrow(Moorg)-cut),]      
+  }
+  jac <- -sum(log(abs(numDeriv:::grad(trans,Yorg[!is.na(Y)]))))
     
   r <- as.vector(row(Y))
   c <- as.vector(col(Y))
@@ -88,6 +101,7 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=paste0(mode,",",deparse
   pred <- as.list(sdr, report=TRUE, what="Est")$pred
   predSd <- as.list(sdr, report=TRUE, what="Std")$pred
 
+  #browser()
 
   matplot(invtrans(pred), type="l", ylim=range(invtrans(data$Y), na.rm=TRUE), main=label)
   matplot(invtrans(pred-2*predSd), , type="l", add=TRUE, lty="dotted")
@@ -100,9 +114,12 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=paste0(mode,",",deparse
     residual <- matrix(ooa$residual, nrow=nrow(Y), ncol=ncol(Y))
     stockassessment:::plotby(row(residual), col(residual), residual)
     boxplot(residual)   
-  }    
+  }
     
-  return(list(logLik=opt$objective+jac, obj=obj, residual=residual, opt=opt, sdr=sdr))
+  SSBorg<-rowSums(Yorg*Norg*Moorg)
+  SSBpred<-rowSums(invtrans(pred)*Norg*Moorg)    
+    
+  return(list(logLik=opt$objective+jac, obj=obj, residual=residual, opt=opt, sdr=sdr, ssbobs=SSBorg, ssbpred=SSBpred))
 }
 
 dat <- read.table("Y.tab", head=FALSE)

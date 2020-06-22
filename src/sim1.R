@@ -31,5 +31,9 @@ x<-MASS:::mvrnorm(1,rep(0,n),Sigma=S)
 
 Y<-exp(matrix(x+rnorm(length(x),0,sd=.1), ncol=nA))
 
+onemat<-matrix(1,nrow=nrow(Y),ncol=ncol(Y))
+
 write.table(Y, row.names=FALSE, col.names=FALSE, sep="\t", file="cases/sim1/Y.tab")
+write.table(onemat, row.names=FALSE, col.names=FALSE, sep="\t", file="cases/sim1/N.tab")
+write.table(onemat, row.names=FALSE, col.names=FALSE, sep="\t", file="cases/sim1/Mo.tab")
 
