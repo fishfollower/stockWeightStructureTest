@@ -163,9 +163,18 @@ Type objective_function<Type>::operator() ()
       for(int j=0;j<nA;j++){
 	covObs(i,j)=pow(rhoObs,Type(abs(i-j)))*sdObs[i]*sdObs[j];
       }
-    
-    nll += SCALE(SEPARABLE(AR1(rho(1)),AR1(rho(0))),exp(logSdProc(0)))(omega);
-    nll += SCALE(AR1(rho(2)),exp(logSdProc(1)))(z);
+
+    SCALE_t< SEPARABLE_t<AR1_t<N01<Type> > , AR1_t<N01<Type> > > > d1=SCALE(SEPARABLE(AR1(rho(1)),AR1(rho(0))),exp(logSdProc(0)));
+    nll += d1(omega);
+    SIMULATE{
+      SEPARABLE(AR1(rho(1)),AR1(rho(0))).simulate(omega);
+      omega*=exp(logSdProc(0));
+    }
+    SCALE_t<AR1_t<N01<Type> > >  d2=SCALE(AR1(rho(2)),exp(logSdProc(1)));
+    nll += d2(z);
+    SIMULATE{
+      d2.simulate(z);
+    }
     
     matrix<Type> dW(nY,nA);
     dW.setZero();
@@ -207,13 +216,24 @@ Type objective_function<Type>::operator() ()
       }
       if(!isNA(Y(i,0))){ 
 	nll += neg_log_density( obsvec - predvec, keepvec);
+	SIMULATE{
+          obsvec=neg_log_density.simulate()+predvec;
+	  for(int j=0; j<nA; ++j){
+            Y(i,j)=obsvec(j);
+	  }  
+	}
       }
     }
     ADREPORT(pred);
+    
+    SIMULATE{
+      REPORT(Y)
+      REPORT(omega)
+      REPORT(z)
+    }  
   }
 
   
-
   
   return(nll);
 }
