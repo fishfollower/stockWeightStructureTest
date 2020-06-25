@@ -28,14 +28,14 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
   Yorg <- as.matrix(read.table("Y.tab", head=FALSE))
   Norg <- as.matrix(read.table("N.tab", head=FALSE))
   Moorg <- as.matrix(read.table("Mo.tab", head=FALSE))
+  Yorg[abs(Yorg)<1.0e-12] <- NA
+  Y <- trans(Yorg)
   if(cut.data>0){
     Yorg<-Yorg[1:(nrow(Yorg)-cut.data),]
     Y<-Y[1:(nrow(Y)-cut.data),]
     Norg<-Norg[1:(nrow(Norg)-cut.data),]
     Moorg<-Moorg[1:(nrow(Moorg)-cut.data),]      
   }    
-  Yorg[abs(Yorg)<1.0e-12] <- NA
-  Y <- trans(Yorg)
   Y[!(1:nrow(Y)%in%(1:(nrow(Y)-predict))),]<-NA
   if(cut>0){
     Yorg<-Yorg[1:(nrow(Yorg)-cut),]
@@ -159,6 +159,8 @@ res <- as.data.frame(do.call(rbind, lapply(mod, function(m)c(m$label, round(m$lo
 cv<-lapply(mod, function(m)cv.rmse(year=10, cv.scale=log, mode=m$call$mode, transCode=m$call$transCode, label=m$label, cut.data=10, map=m$call$map))
 
 res<-cbind(res,do.call(rbind,cv))
+
+names(res)<-c("Label", "-logLik", "Conv all", "RMSE-CV", "Conv rate CV")
 
 cat(sub("^[1-9]*","",capture.output(res)), file = 'res.tab', sep = '\n')
 
