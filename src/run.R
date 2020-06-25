@@ -1,7 +1,12 @@
 library(TMB)
+# compile 
+compile("../../src/gmrf1.cpp")
+dyn.load(dynlib("../../src/gmrf1"))
 
-runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=predict-1,...){
+cat("###################\n",getwd(),"\n#####################")
 
+runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=predict-1, silent=TRUE, cut.data=0, map=list(), ...){
+  
   ## trans codes: -1 = identity, 0 = log, >0 = power [ x^(transCode) ]
   trans <- identity
   invtrans <- identity
@@ -19,10 +24,16 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
     
   # setup data 
   data <- list()
-  cat("###################\n",getwd(),"\n#####################")
+
   Yorg <- as.matrix(read.table("Y.tab", head=FALSE))
   Norg <- as.matrix(read.table("N.tab", head=FALSE))
   Moorg <- as.matrix(read.table("Mo.tab", head=FALSE))
+  if(cut.data>0){
+    Yorg<-Yorg[1:(nrow(Yorg)-cut.data),]
+    Y<-Y[1:(nrow(Y)-cut.data),]
+    Norg<-Norg[1:(nrow(Norg)-cut.data),]
+    Moorg<-Moorg[1:(nrow(Moorg)-cut.data),]      
+  }    
   Yorg[abs(Yorg)<1.0e-12] <- NA
   Y <- trans(Yorg)
   Y[!(1:nrow(Y)%in%(1:(nrow(Y)-predict))),]<-NA
@@ -33,7 +44,7 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
     Moorg<-Moorg[1:(nrow(Moorg)-cut),]      
   }
   jac <- -sum(log(abs(numDeriv:::grad(trans,Yorg[!is.na(Y)]))))
-    
+  
   r <- as.vector(row(Y))
   c <- as.vector(col(Y))
   n <- length(r)
@@ -90,12 +101,9 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
     ran <- c("omega","z")
   }
   
-  # compile 
-  compile("../../src/gmrf1.cpp")
-  dyn.load(dynlib("../../src/gmrf1"))
 
   # run model 
-  obj <- MakeADFun(data,param,random=ran, DLL="gmrf1",...)
+  obj <- MakeADFun(data,param,random=ran, DLL="gmrf1", silent=silent, map=map, ...)
   opt <- nlminb(obj$par, obj$fn, obj$gr)
   sdr <- sdreport(obj)
   pred <- as.list(sdr, report=TRUE, what="Est")$pred
@@ -118,22 +126,39 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
     
   SSBorg<-rowSums(Yorg*Norg*Moorg)
   SSBpred<-rowSums(invtrans(pred)*Norg*Moorg)    
-    
-  return(list(logLik=opt$objective+jac, obj=obj, residual=residual, opt=opt, sdr=sdr, ssbobs=SSBorg, ssbpred=SSBpred))
+  conv<-(all(is.finite(summary.sdreport(sdr, "fixed")[,2])))&(opt$convergence==0)
+  if(!conv)warning("Convergence issue")  
+  return(list(logLik=opt$objective+jac, obj=obj, residual=residual, opt=opt, sdr=sdr, ssbobs=SSBorg, ssbpred=SSBpred, conv=conv, label=label, call=mget(names(formals()),sys.frame(sys.nframe()))))
+}
+
+cv.rmse <- function(year=10, cv.scale=identity, lag=10, ...){
+    sq.error<-function(p){fit<-runit(...,predict=p); c((tail(cv.scale(fit$ssbobs),1)-tail(cv.scale(fit$ssbpred),1))^2,as.integer(fit$conv))}
+    ret<-rowMeans(Vectorize(sq.error)(1:year+lag))
+    ret[1]<-sqrt(ret[1])
+    ret
 }
 
 dat <- read.table("Y.tab", head=FALSE)
 mymap <- list(logSdObs=factor(rep(1,ncol(dat))))
 
 pdf("res.pdf")
-  runit(mode=1, res=TRUE, map=mymap)
-  runit(mode=1, trans=0, res=TRUE, map=mymap)  
-  runit(mode=2, res=TRUE, map=mymap)
-  runit(mode=2, trans=0, res=TRUE, map=mymap)    
-  runit(mode=3, res=TRUE, map=mymap)
-  runit(mode=3, trans=0, res=TRUE, map=mymap)
-  runit(mode=4, trans=0, res=TRUE,map=mymap)
-  runit(mode=4, trans=1/3, res=TRUE,map=mymap)
-  runit(mode=4, trans=1/2, res=TRUE,map=mymap)
+  mod <- list()
+  mod[[length(mod)+1]] <- runit(mode=1, res=TRUE, map=mymap, cut.data=10, label="Mod1-identity-constantVariance")
+  mod[[length(mod)+1]] <- runit(mode=1, trans=0, res=TRUE, map=mymap, cut.data=10, label="Mod1-log-constantVariance")
+  mod[[length(mod)+1]] <- runit(mode=2, res=TRUE, map=mymap, cut.data=10, label="Mod2-identity-constantVariance")
+  mod[[length(mod)+1]] <- runit(mode=2, trans=0, res=TRUE, map=mymap, cut.data=10, label="Mod2-log-constantVariance")
+  mod[[length(mod)+1]] <- runit(mode=3, res=TRUE, map=mymap, cut.data=10, label="Mod3-identity-constantVariance")
+  mod[[length(mod)+1]] <- runit(mode=3, trans=0, res=TRUE, map=mymap, cut.data=10, label="Mod3-log-constantVariance")
+  mod[[length(mod)+1]] <- runit(mode=4, trans=0, res=TRUE,map=mymap, cut.data=10, label="Mod4-log-constantVariance")
+  mod[[length(mod)+1]] <- runit(mode=4, trans=1/3, res=TRUE,map=mymap, cut.data=10, label="Mod4-cubrt-constantVariance")
+  mod[[length(mod)+1]] <- runit(mode=4, trans=1/2, res=TRUE,map=mymap, cut.data=10, label="Mod4-sqrt-constantVariance")
 dev.off()
+
+res <- as.data.frame(do.call(rbind, lapply(mod, function(m)c(m$label, round(m$logLik,2), m$conv))))
+
+cv<-lapply(mod, function(m)cv.rmse(year=10, cv.scale=log, mode=m$call$mode, transCode=m$call$transCode, label=m$label, cut.data=10, map=m$call$map))
+
+res<-cbind(res,do.call(rbind,cv))
+
+cat(sub("^[1-9]*","",capture.output(res)), file = 'res.tab', sep = '\n')
 

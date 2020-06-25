@@ -1,5 +1,6 @@
 CASES := $(wildcard cases/*)
 resfiles := $(foreach dir,$(CASES),$(dir)/res.pdf)
+resfiles2 := $(foreach dir,$(CASES),$(dir)/res.tab)
 datfiles := $(foreach dir,$(CASES),$(dir)/Y.tab)
 
 .PHONY: sim clean run printcases
@@ -10,7 +11,7 @@ cases/sim1/Y.tab: src/sim1.R
 sim: cases/sim1/Y.tab
 
 clean:
-	rm -f $(resfiles) src/*.o src/*.so
+	rm -f $(resfiles) $(resfiles2) rc/*.o src/*.so
 
 res.pdf: Y.tab ../../src/gmrf1.cpp ../../src/run.R
 	echo 'source("../../src/run.R")' | R --slave
