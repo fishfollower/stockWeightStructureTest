@@ -17,6 +17,8 @@ stocks <- c("bw"="BW_2018",
             "nssai"="NS_saithe_2018_rerun",
             "nswhit"="NSwhiting_2020_new_method_new1")
 
+par(mfrow=n2mfrow(length(stocks)),mar=c(1,1,1,1))
+
 for( i in 1:length(stocks) ){
 
     cat(stocks[i],"...")
@@ -29,6 +31,7 @@ for( i in 1:length(stocks) ){
     if(file.exists(paste0(thedir,"/Y.dat")) || overwrite ){
         fit <- fitfromweb(stocks[i],character.only=TRUE)
         sw <- fit$data$stockMeanWeight
+        orig.ages <- colnames(sw)
         logN <- t(fit$pl$logN)
         matur <- fit$data$propMat
         logM <- fit$data$natMor
@@ -46,20 +49,39 @@ for( i in 1:length(stocks) ){
         ## remove ages with zero/negative values
         goodAges <- apply(sw,2,function(x) !any(x<=0))
 
-        sw <- sw[,goodAges]
-
+        sw <- sw[,colnames(sw) %in% names(goodAges[goodAges])]
+        
         dsw <- apply(sw,2,diff)
-
+        
         ## at most 1 repeated value pr year, AND always remove the last year (because it is often not observed, but set to avg. of last X years).
         
         goodYears <- c( apply(dsw,1,function(x) sum(x==0)<=1 ), FALSE )
 
-        write.table(sw[goodYears,],file=paste0(thedir,"/Y.tab"),row.names=FALSE,col.names=FALSE)
+        sw <- sw[goodYears,]
+        
+        ## remove ages with repeated (imputed) values over time
+        dsw <- apply(sw,2,diff)
+        goodAges2 <- apply(dsw,2,function(x) sum(x==0)<=1 ) 
+        sw <- sw[,colnames(sw) %in% names(goodAges2[goodAges2])]
+
+        ## remove repeated age groups
+        dsw2 <- apply(sw,1,diff)
+        badAges <- apply(dsw2,1,function(x) sum(x==0)>1 )
+        sw <- sw[,!colnames(sw) %in% names(badAges[badAges])]
+
+        goodAges <- which( colnames(sw) %in% orig.ages )
+        
+        includesPlusGroup <- fit$conf$maxAge == as.numeric(max(colnames(sw)))
+
+        info <- data.frame(includesPlusGroup = includesPlusGroup, minAge = min(as.numeric(goodAges)),maxAge = max(as.numeric(goodAges)))
+        write.table(info,file=paste0(thedir,"/info.tab"))                                                                       
+        
+        write.table(sw,file=paste0(thedir,"/Y.tab"),row.names=FALSE,col.names=FALSE)
         write.table(exp(logN)[goodYears,goodAges],file=paste0(thedir,"/N.tab"),row.names=FALSE,col.names=FALSE)
         write.table(matur[goodYears,goodAges],file=paste0(thedir,"/Mo.tab"),row.names=FALSE,col.names=FALSE)
 
         write.table(Z[goodYears,goodAges],file=paste0(thedir,"/Z.tab"),row.names=FALSE,col.names=FALSE)
         cat("done.\n")
-        
+        matplot(sw,main=stocks[i],axes=FALSE)
     }   
 }
