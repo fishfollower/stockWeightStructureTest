@@ -102,15 +102,30 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
   }
   
 
-  # run model 
+  ## run model 
   obj <- MakeADFun(data,param,random=ran, DLL="gmrf1", silent=silent, map=map, ...)
-  opt <- nlminb(obj$par, obj$fn, obj$gr)
+    
+  lower <- rep(-Inf,length(obj$par))
+  upper <- rep(Inf,length(obj$par))  
+  pn <- names(obj$par)
+  lower[ grep("^log",pn) ] <- -5
+  upper[ grep("^log",pn) ] <- 5
+  lower[ grep("^logit",pn) ] <- -4
+  upper[ grep("^logit",pn) ] <- 4
+    
+    
+  opt <- nlminb(obj$par, obj$fn, obj$gr,lower=lower,upper=upper)
   sdr <- sdreport(obj)
   pred <- as.list(sdr, report=TRUE, what="Est")$pred
   predSd <- as.list(sdr, report=TRUE, what="Std")$pred
 
-  #browser()
-
+  sink("sdrep.tab",append=TRUE); print(label); print(summary.sdreport(sdr,"fixed")); sink();
+  loglik <- opt$objective+jac
+  k <- length(opt$par)
+  nobs <- length(data$Y)  
+  aicc <- 2*loglik + 2*k + 2*k*(k+1)/(nobs-k-1)
+  aic <- 2*loglik 
+    
   matplot(invtrans(pred), type="l", ylim=range(invtrans(data$Y), na.rm=TRUE), main=label)
   matplot(invtrans(pred-2*predSd), , type="l", add=TRUE, lty="dotted")
   matplot(invtrans(pred+2*predSd), type="l", add=TRUE, lty="dotted")
@@ -128,7 +143,7 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
   SSBpred<-rowSums(invtrans(pred)*Norg*Moorg)    
   conv<-(all(is.finite(summary.sdreport(sdr, "fixed")[,2])))&(opt$convergence==0)
   if(!conv)warning("Convergence issue")  
-  return(list(logLik=opt$objective+jac, obj=obj, residual=residual, opt=opt, sdr=sdr, ssbobs=SSBorg, ssbpred=SSBpred, conv=conv, label=label, call=mget(names(formals()),sys.frame(sys.nframe()))))
+  return(list(logLik=opt$objective+jac, AICc=aicc, AIC=aic, obj=obj, residual=residual, opt=opt, sdr=sdr, ssbobs=SSBorg, ssbpred=SSBpred, conv=conv, label=label, call=mget(names(formals()),sys.frame(sys.nframe()))))
 }
 
 cv.rmse <- function(year=10, cv.scale=identity, lag=10, ...){
@@ -143,24 +158,24 @@ mymap <- list(logSdObs=factor(rep(1,ncol(dat))))
 
 pdf("res.pdf")
   mod <- list()
-  mod[[length(mod)+1]] <- runit(mode=1, res=TRUE, map=mymap, cut.data=10, label="Mod1-identity-constantVariance")
+  ##mod[[length(mod)+1]] <- runit(mode=1, res=TRUE, map=mymap, cut.data=10, label="Mod1-identity-constantVariance")
   mod[[length(mod)+1]] <- runit(mode=1, trans=0, res=TRUE, map=mymap, cut.data=10, label="Mod1-log-constantVariance")
-  mod[[length(mod)+1]] <- runit(mode=2, res=TRUE, map=mymap, cut.data=10, label="Mod2-identity-constantVariance")
+  ##mod[[length(mod)+1]] <- runit(mode=2, res=TRUE, map=mymap, cut.data=10, label="Mod2-identity-constantVariance")
   mod[[length(mod)+1]] <- runit(mode=2, trans=0, res=TRUE, map=mymap, cut.data=10, label="Mod2-log-constantVariance")
-  mod[[length(mod)+1]] <- runit(mode=3, res=TRUE, map=mymap, cut.data=10, label="Mod3-identity-constantVariance")
+  ##mod[[length(mod)+1]] <- runit(mode=3, res=TRUE, map=mymap, cut.data=10, label="Mod3-identity-constantVariance")
   mod[[length(mod)+1]] <- runit(mode=3, trans=0, res=TRUE, map=mymap, cut.data=10, label="Mod3-log-constantVariance")
   mod[[length(mod)+1]] <- runit(mode=4, trans=0, res=TRUE,map=mymap, cut.data=10, label="Mod4-log-constantVariance")
   mod[[length(mod)+1]] <- runit(mode=4, trans=1/3, res=TRUE,map=mymap, cut.data=10, label="Mod4-cubrt-constantVariance")
   mod[[length(mod)+1]] <- runit(mode=4, trans=1/2, res=TRUE,map=mymap, cut.data=10, label="Mod4-sqrt-constantVariance")
 dev.off()
 
-res <- as.data.frame(do.call(rbind, lapply(mod, function(m)c(m$label, round(m$logLik,2), m$conv))))
+res <- as.data.frame(do.call(rbind, lapply(mod, function(m)c(m$label, round(m$logLik,2), round(m$AICc,2), round(m$AIC,2), m$conv))))
 
 cv<-lapply(mod, function(m)cv.rmse(year=10, cv.scale=log, mode=m$call$mode, transCode=m$call$transCode, label=m$label, cut.data=10, map=m$call$map))
 
 res<-cbind(res,do.call(rbind,cv))
 
-names(res)<-c("Label", "-logLik", "Conv all", "RMSE-CV", "Conv rate CV")
+names(res)<-c("Label", "-logLik", "AICc","AIC","Conv all", "RMSE-CV", "Conv rate CV")
 
 cat(sub("^[1-9]*","",capture.output(res)), file = 'res.tab', sep = '\n')
 
