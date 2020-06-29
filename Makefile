@@ -29,4 +29,4 @@ printcases:
 	$(info $$datfiles are [$(datfiles)])
 
 allrestab:
-	cp $(resfiles3) > ../allresrab.txt
+	cat $(resfiles2) > allresrab.txt
