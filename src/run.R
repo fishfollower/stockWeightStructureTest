@@ -105,7 +105,26 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
     }
     ran <- c("omega","z")
   }
-  
+  if(mode==5){
+    param$logPhi <- c(0,0,0)
+    param$mu <- numeric(ncol(data$Y))
+    param$logSdProc <- 0
+    param$logSdObs <- numeric(ncol(data$Y))
+    param$z <- matrix(0,nrow=nrow(data$Y), ncol=ncol(data$Y))
+    param$logitRhoObs <- 0
+    ran <- c("z")  
+  }
+  if(mode==6){
+    param$logPhi <- c(0,0,0)
+    param$mu <- numeric(ncol(data$Y))
+    param$logSdProc <- 0
+    param$logSdObs <- numeric(ncol(data$Y))
+    param$z <- matrix(0,nrow=nrow(data$Y), ncol=ncol(data$Y))
+    param$logitRhoObs <- 0
+    ran <- c("z")
+    data$trans <- transCode
+    stopifnot(transCode>=0)
+  }
 
   ## run model 
   obj <- MakeADFun(data,param,random=ran, DLL="gmrf1", silent=silent, map=map, ...)
@@ -194,6 +213,10 @@ pdf("res.pdf")
   mod[[length(mod)+1]] <- runit(mode=4, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod4-log-constVar")
   mod[[length(mod)+1]] <- runit(mode=4, trans=1/3, res=resflag,map=mymap, cut.data=10, label="Mod4-cubrt-constVar")
   mod[[length(mod)+1]] <- runit(mode=4, trans=1/2, res=resflag,map=mymap, cut.data=10, label="Mod4-sqrt-constVar")
+  mod[[length(mod)+1]] <- runit(mode=5, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod5-log-constVar")
+  mod[[length(mod)+1]] <- runit(mode=6, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod6-log-constVar")
+
+
 dev.off()
 
 
