@@ -2,6 +2,7 @@ CASES := $(wildcard cases/*)
 resfiles := $(foreach dir,$(CASES),$(dir)/res.pdf)
 resfiles2 := $(foreach dir,$(CASES),$(dir)/res.tab)
 resfiles3 := $(foreach dir,$(CASES),$(dir)/sdrep.tab)
+resfiles4 := $(foreach dir,$(CASES),$(dir)/jit.tab)
 
 datfiles := $(foreach dir,$(CASES),$(dir)/Y.tab)
 
@@ -13,7 +14,7 @@ cases/sim1/Y.tab: src/sim1.R
 sim: cases/sim1/Y.tab
 
 clean:
-	rm -f $(resfiles) $(resfiles2) $(resfiles3) src/*.o src/*.so
+	rm -f $(resfiles) $(resfiles2) $(resfiles3)  $(resfiles4) src/*.o src/*.so
 
 res.pdf: Y.tab ../../src/gmrf1.cpp ../../src/run.R
 	echo 'source("../../src/run.R")' | R --slave

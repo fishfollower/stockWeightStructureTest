@@ -158,30 +158,60 @@ cv.rmse <- function(year=10, cv.scale=identity, ...){
     ret
 }
 
+jitfun <- function(fit,n=10){
+  lower <- rep(-Inf,length(fit$obj$par))
+  upper <- rep(Inf,length(fit$obj$par))  
+  pn <- names(fit$obj$par)
+  lower[ grep("^log",pn) ] <- -5
+  upper[ grep("^log",pn) ] <- 5
+  lower[ grep("^logit",pn) ] <- -4
+  upper[ grep("^logit",pn) ] <- 4
+  fits <- lapply(1:n, function(i)nlminb(fit$obj$par+rnorm(length(fit$obj$par),sd=.25), fit$obj$fn, fit$obj$gr, lower=lower, upper=upper))
+  res <- max(abs(sapply(fits,function(x)c((x$par-fit$opt$par)/fit$opt$par,nll=(x$objective-fit$opt$objective)/fit$opt$objective))))
+  if(res>0.001){
+    out<- t(sapply(fits,function(x)c(x$par,nll=x$objective, conv=x$conv)))
+    options(width=200)
+    cat(fit$label,"\n",file="jit.tab", append=TRUE)
+    cat(sub("^[1-9].*","  ",capture.output(as.data.frame(out))), file = 'jit.tab', append=TRUE, sep = '\n')
+  }
+  res
+}
+
 dat <- read.table("Y.tab", head=FALSE)
 mymap <- list(logSdObs=factor(rep(1,ncol(dat))))
 
+resflag<-FALSE
+
 pdf("res.pdf")
   mod <- list()
-  mod[[length(mod)+1]] <- runit(mode=0, trans=0, res=TRUE, map=mymap, cut.data=10, label="Mod0-log-constVar")
+  mod[[length(mod)+1]] <- runit(mode=0, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod0-log-constVar")
   ##mod[[length(mod)+1]] <- runit(mode=1, res=TRUE, map=mymap, cut.data=10, label="Mod1-identity-constVar")
-  mod[[length(mod)+1]] <- runit(mode=1, trans=0, res=TRUE, map=mymap, cut.data=10, label="Mod1-log-constVar")
+  mod[[length(mod)+1]] <- runit(mode=1, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod1-log-constVar")
   ##mod[[length(mod)+1]] <- runit(mode=2, res=TRUE, map=mymap, cut.data=10, label="Mod2-identity-constantVar")
-  mod[[length(mod)+1]] <- runit(mode=2, trans=0, res=TRUE, map=mymap, cut.data=10, label="Mod2-log-constVar")
+  mod[[length(mod)+1]] <- runit(mode=2, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod2-log-constVar")
   ##mod[[length(mod)+1]] <- runit(mode=3, res=TRUE, map=mymap, cut.data=10, label="Mod3-identity-constVar")
-  mod[[length(mod)+1]] <- runit(mode=3, trans=0, res=TRUE, map=mymap, cut.data=10, label="Mod3-log-constVar")
-  mod[[length(mod)+1]] <- runit(mode=4, trans=0, res=TRUE,map=mymap, cut.data=10, label="Mod4-log-constVar")
-  mod[[length(mod)+1]] <- runit(mode=4, trans=1/3, res=TRUE,map=mymap, cut.data=10, label="Mod4-cubrt-constVar")
-  mod[[length(mod)+1]] <- runit(mode=4, trans=1/2, res=TRUE,map=mymap, cut.data=10, label="Mod4-sqrt-constVar")
+  mod[[length(mod)+1]] <- runit(mode=3, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod3-log-constVar")
+  mod[[length(mod)+1]] <- runit(mode=4, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod4-log-constVar")
+  mod[[length(mod)+1]] <- runit(mode=4, trans=1/3, res=resflag,map=mymap, cut.data=10, label="Mod4-cubrt-constVar")
+  mod[[length(mod)+1]] <- runit(mode=4, trans=1/2, res=resflag,map=mymap, cut.data=10, label="Mod4-sqrt-constVar")
 dev.off()
+
+
+
+dat <- read.table("Y.tab", head=FALSE)
+mymap <- list(logSdObs=factor(rep(1,ncol(dat))))
+
 
 res <- as.data.frame(do.call(rbind, lapply(mod, function(m)c(m$label, round(m$logLik,2), round(m$AICc,2), round(m$AIC,2), m$conv))))
 
 cv<-lapply(mod, function(m)cv.rmse(year=10, cv.scale=log, mode=m$call$mode, transCode=m$call$transCode, label=m$label, cut.data=m$call$cut.data, map=m$call$map))
 
-res<-cbind(res,do.call(rbind,cv))
+jit <- sapply(mod, function(m)jitfun(m))
 
-names(res)<-c("Label", "-logLik", "AICc","AIC","Conv all", "RMSE-CV", "Conv rate CV")
+res<-cbind(res,do.call(rbind,cv),round(jit,3))
 
-cat(sub("^[1-9]*","",capture.output(res)), file = 'res.tab', sep = '\n')
+names(res)<-c("Label", "-logLik", "AICc","AIC","Conv all", "RMSE-CV", "Conv rate CV", "jit")
 
+options(width=200)
+cat(sub("^[1-9]*","  ",capture.output(res)), file = 'res.tab', sep = '\n')
+options(width=80)
