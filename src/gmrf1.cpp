@@ -172,7 +172,7 @@ Type objective_function<Type>::operator() ()
     ADREPORT(pred);
   }
 
-  if(mode==4){ // as mode 3, but where cohorts and only increase in weight
+  if(mode==4){ // as mode 3, but where cohorts can only increase in weight
 
     DATA_MATRIX(Wr)
     DATA_MATRIX(Wc)
@@ -273,6 +273,59 @@ Type objective_function<Type>::operator() ()
     }  
   }
 
+  if(mode==5){ // as model 1, but with correlated errors
+
+    DATA_MATRIX(Wr)
+    DATA_MATRIX(Wc)
+    DATA_MATRIX(Wd)
+    DATA_ARRAY(Y)
+    DATA_ARRAY_INDICATOR(keep,Y);
+    matrix<Type> pred(Y.dim[0],Y.dim[1]);
+    
+    PARAMETER_VECTOR(logPhi)
+    PARAMETER_VECTOR(mu)
+    PARAMETER(logSdProc)   
+    PARAMETER_VECTOR(logSdObs)   
+    PARAMETER_MATRIX(z)
+    PARAMETER(logitRhoObs)  
+    vector<Type> phi=exp(logPhi);
+    
+    matrix<Type> I(Wr.rows(),Wr.cols());
+    I.setIdentity();
+
+    matrix<Type> Q=I-phi(0)*Wr-phi(1)*Wc-phi(2)*Wd;
+    
+    using namespace density;
+    nll += SCALE(GMRF(asSparseMatrix(Q)),exp(logSdProc))(z.vec());
+
+    Type rhoObs = invlogit(logitRhoObs);
+    vector<Type> sdObs = exp(logSdObs);
+    int nA = Y.dim[1];
+    matrix<Type> covObs(nA,nA);
+    for(int i=0;i<nA;i++)
+      for(int j=0;j<nA;j++){
+	covObs(i,j)=pow(rhoObs,Type(abs(i-j)))*sdObs[i]*sdObs[j];
+      }
+    MVNORM_t<Type> neg_log_density(covObs);
+    
+    vector<Type> obsvec(nA); 
+    vector<Type> predvec(nA);
+    data_indicator<vector<Type>,Type> keepvec(nA);
+    
+    for(int i=0; i<Y.dim[0]; ++i){
+      for(int j=0; j<Y.dim[1]; ++j){
+        pred(i,j)=z(i,j)+mu(j);
+	obsvec(j) = Y(i,j);
+	predvec(j) = pred(i,j);
+	keepvec(j) = keep(i,j);
+      }
+      if(!isNA(Y(i,0))){ 
+	nll += neg_log_density( obsvec - predvec, keepvec);
+      }
+    }
+    ADREPORT(pred);
+  }
+  
   
   
   return(nll);
