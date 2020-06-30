@@ -191,7 +191,7 @@ jitfun <- function(fit,n=10){
     out<- t(sapply(fits,function(x)c(x$par,nll=x$objective, conv=x$conv)))
     options(width=200)
     cat(fit$label,"\n",file="jit.tab", append=TRUE)
-    cat(sub("^[1-9].*","  ",capture.output(as.data.frame(out))), file = 'jit.tab', append=TRUE, sep = '\n')
+    cat(sub("^[1-9]*","  ",capture.output(as.data.frame(out))), file = 'jit.tab', append=TRUE, sep = '\n')
   }
   res
 }

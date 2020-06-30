@@ -30,4 +30,4 @@ printcases:
 	$(info $$datfiles are [$(datfiles)])
 
 allrestab:
-	cat $(resfiles2) > allresrab.txt
+	cat $(resfiles2) > allrestab.txt
