@@ -10,7 +10,47 @@ Type objective_function<Type>::operator() ()
 {
   DATA_INTEGER(mode)
   Type nll = 0;
+
+  if(mode==0){  
+    DATA_MATRIX(Wr)
+    DATA_MATRIX(Wc)
+    DATA_MATRIX(Wd)
+    DATA_ARRAY(Y)
+    DATA_ARRAY_INDICATOR(keep,Y);
+    DATA_INTEGER(aveYears);
+    matrix<Type> pred(Y.dim[0],Y.dim[1]);
     
+    PARAMETER_VECTOR(logSdObs)
+    Type s;
+    int c;
+    for(int i=0; i<Y.dim[0]; ++i){
+      for(int j=0; j<Y.dim[1]; ++j){
+	s=0;
+	c=0;
+        if(i<aveYears){
+          for(int ii=0; ii<aveYears; ++ii){
+	    if(!isNA(Y(ii,j))){
+  	      s+=Y(ii,j);
+	      ++c;
+	    }
+	  }
+	}else{
+          for(int ii=(i-aveYears); ii<i; ++ii){
+	    if(!isNA(Y(ii,j))){
+	      s+=Y(ii,j);
+              ++c;
+	    }
+	  }
+	}
+	pred(i,j)=s/c;
+        if(!isNA(Y(i,j))){
+          nll += -dnorm(Y(i,j),pred(i,j),exp(logSdObs(j)),true)*keep(i,j);
+        }
+      }
+    }
+    ADREPORT(pred);
+  }
+  
   if(mode==1){ // GMRF with neighbors in year, age, and cohort direction  
     DATA_MATRIX(Wr)
     DATA_MATRIX(Wc)

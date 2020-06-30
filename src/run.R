@@ -69,6 +69,11 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
 
   # setup parameters
   param<-list()  
+  if(mode==0){
+    data$aveYears <- 3      
+    param$logSdObs <- numeric(ncol(data$Y))
+    ran <- NULL
+  }
   if(mode==1){    
     param$logPhi <- c(0,0,0)
     param$mu <- numeric(ncol(data$Y))
@@ -124,7 +129,7 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
   k <- length(opt$par)
   nobs <- length(data$Y)  
   aicc <- 2*loglik + 2*k + 2*k*(k+1)/(nobs-k-1)
-  aic <- 2*loglik 
+  aic <- 2*loglik + 2*k
     
   matplot(invtrans(pred), type="l", ylim=range(invtrans(data$Y), na.rm=TRUE), main=label)
   matplot(invtrans(pred-2*predSd), , type="l", add=TRUE, lty="dotted")
@@ -158,6 +163,7 @@ mymap <- list(logSdObs=factor(rep(1,ncol(dat))))
 
 pdf("res.pdf")
   mod <- list()
+  mod[[length(mod)+1]] <- runit(mode=0, trans=0, res=TRUE, map=mymap, cut.data=10, label="Mod0-log-constantVariance")
   ##mod[[length(mod)+1]] <- runit(mode=1, res=TRUE, map=mymap, cut.data=10, label="Mod1-identity-constantVariance")
   mod[[length(mod)+1]] <- runit(mode=1, trans=0, res=TRUE, map=mymap, cut.data=10, label="Mod1-log-constantVariance")
   ##mod[[length(mod)+1]] <- runit(mode=2, res=TRUE, map=mymap, cut.data=10, label="Mod2-identity-constantVariance")
