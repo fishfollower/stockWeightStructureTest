@@ -6,7 +6,7 @@ resfiles4 := $(foreach dir,$(CASES),$(dir)/jit.tab)
 
 datfiles := $(foreach dir,$(CASES),$(dir)/Y.tab)
 
-.PHONY: sim clean run printcases allrestab
+.PHONY: sim clean run printcases allrestab summary
 
 cases/sim1/Y.tab: src/sim1.R
 	echo 'source("src/sim1.R")' | R --slave
@@ -14,7 +14,7 @@ cases/sim1/Y.tab: src/sim1.R
 sim: cases/sim1/Y.tab
 
 clean:
-	rm -f $(resfiles) $(resfiles2) $(resfiles3)  $(resfiles4) src/*.o src/*.so
+	rm -f $(resfiles) $(resfiles2) $(resfiles3)  $(resfiles4) src/*.o src/*.so sumtab.txt meantab.txt
 
 res.pdf: Y.tab ../../src/gmrf1.cpp ../../src/run.R
 	echo 'source("../../src/run.R")' | R --slave
@@ -31,3 +31,8 @@ printcases:
 
 allrestab:
 	cat $(resfiles2) > allrestab.txt
+
+sumtab.txt: $(resfiles)
+	cd src; echo 'source("summarize.R")' | R --slave
+
+summary: sumtab.txt 
