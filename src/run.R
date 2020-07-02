@@ -5,7 +5,7 @@ dyn.load(dynlib("../../src/gmrf1"))
 
 cat("###################\n",getwd(),"\n#####################")
 
-runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=predict-1, silent=TRUE, cut.data=0, map=list(), ...){
+runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=predict-1, silent=TRUE, cut.data=0, map=list(), lowerLog=-Inf, upperLog=Inf, lowerLogit=-Inf, upperLogit=Inf,  ...){
   
   ## trans codes: -1 = identity, 0 = log, >0 = power [ x^(transCode) ]
   trans <- identity
@@ -145,10 +145,10 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
   lower <- rep(-Inf,length(obj$par))
   upper <- rep(Inf,length(obj$par))  
   pn <- names(obj$par)
-  lower[ grep("^log",pn) ] <- -5
-  upper[ grep("^log",pn) ] <- 5
-  lower[ grep("^logit",pn) ] <- -4
-  upper[ grep("^logit",pn) ] <- 4
+  lower[ grep("^log",pn) ] <- lowerLog
+  upper[ grep("^log",pn) ] <- upperLog
+  lower[ grep("^logit",pn) ] <- lowerLogit
+  upper[ grep("^logit",pn) ] <- upperLogit
     
     
   opt <- nlminb(obj$par, obj$fn, obj$gr,lower=lower,upper=upper)
@@ -194,10 +194,10 @@ jitfun <- function(fit,n=10){
   lower <- rep(-Inf,length(fit$obj$par))
   upper <- rep(Inf,length(fit$obj$par))  
   pn <- names(fit$obj$par)
-  lower[ grep("^log",pn) ] <- -5
-  upper[ grep("^log",pn) ] <- 5
-  lower[ grep("^logit",pn) ] <- -4
-  upper[ grep("^logit",pn) ] <- 4
+  lower[ grep("^log",pn) ] <- fit$call$lowerLog
+  upper[ grep("^log",pn) ] <- fit$call$upperLog
+  lower[ grep("^logit",pn) ] <- fit$call$lowerLogit
+  upper[ grep("^logit",pn) ] <- fit$call$upperLogit
   fits <- lapply(1:n, function(i)nlminb(fit$obj$par+rnorm(length(fit$obj$par),sd=.25), fit$obj$fn, fit$obj$gr, lower=lower, upper=upper))
   res <- max(abs(sapply(fits,function(x)c((x$par-fit$opt$par)/fit$opt$par,nll=(x$objective-fit$opt$objective)/fit$opt$objective))))
   if(res>0.001){
@@ -225,12 +225,12 @@ pdf("res.pdf")
   mod[[length(mod)+1]] <- runit(mode=1010, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod1Phi2-log-constVar")
   mod[[length(mod)+1]] <- runit(mode=1001, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod1Phi3-log-constVar")
   mod[[length(mod)+1]] <- runit(mode=2, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod2-log-constVar")
-  mod[[length(mod)+1]] <- runit(mode=3, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod3-log-constVar")
-  mod[[length(mod)+1]] <- runit(mode=4, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod4-log-constVar")
-  mod[[length(mod)+1]] <- runit(mode=4, trans=1/3, res=resflag,map=mymap, cut.data=10, label="Mod4-cubrt-constVar")
-  mod[[length(mod)+1]] <- runit(mode=4, trans=1/2, res=resflag,map=mymap, cut.data=10, label="Mod4-sqrt-constVar")
-  mod[[length(mod)+1]] <- runit(mode=5, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod5-log-constVar")
-  mod[[length(mod)+1]] <- runit(mode=6, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod6-log-constVar")
+  mod[[length(mod)+1]] <- runit(mode=3, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod3-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
+  mod[[length(mod)+1]] <- runit(mode=4, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod4-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
+  mod[[length(mod)+1]] <- runit(mode=4, trans=1/3, res=resflag,map=mymap, cut.data=10, label="Mod4-cubrt-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
+  mod[[length(mod)+1]] <- runit(mode=4, trans=1/2, res=resflag,map=mymap, cut.data=10, label="Mod4-sqrt-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
+  mod[[length(mod)+1]] <- runit(mode=5, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod5-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
+  mod[[length(mod)+1]] <- runit(mode=6, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod6-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
 dev.off()
 
 
@@ -241,7 +241,8 @@ mymap <- list(logSdObs=factor(rep(1,ncol(dat))))
 
 res <- as.data.frame(do.call(rbind, lapply(mod, function(m)c(m$label, round(m$logLik,2), round(m$AICc,2), round(m$AIC,2), m$conv))))
 
-cv<-lapply(mod, function(m)cv.rmse(year=10, cv.scale=log, mode=m$call$mode, transCode=m$call$transCode, label=m$label, cut.data=m$call$cut.data, map=m$call$map))
+cv<-lapply(mod, function(m)cv.rmse(year=10, cv.scale=log, mode=m$call$mode, transCode=m$call$transCode, label=m$label, cut.data=m$call$cut.data, map=m$call$map,
+                                   lowerLog=m$call$lowerLog, upperLog=m$call$upperLog, lowerLogit=m$call$lowerLogit, upperLogit=m$call$upperLogit))
 
 jit <- sapply(mod, function(m)jitfun(m))
 
