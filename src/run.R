@@ -67,6 +67,13 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
   data$Wd <- W.d
   data$Y <- Y
 
+  addToMap<-function(x,map){
+      for(i in 1:length(x)){
+          map[[ names(x)[i] ]] <- x[[i]]
+      }
+      map
+  }
+    
   # setup parameters
   param<-list()  
   if(mode==0){
@@ -89,7 +96,7 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
     param$logPhi[idx==0]<- -10
     addmap<-1:3
     addmap[idx==0] <- NA
-    map=c(map,list(logPhi=factor(addmap)))
+    map<- addToMap(list(logPhi=factor(addmap)),map)
     param$mu <- numeric(ncol(data$Y))
     param$logSdProc <- 0
     param$logSdObs <- numeric(ncol(data$Y))
@@ -139,7 +146,31 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
     data$trans <- transCode
     stopifnot(transCode>=0)
   }
+  if(mode%in%c(4001,4010,4100,4110,4101,4011,4111)){
+    data$mode <- 4
+    idx<-as.numeric(strsplit(as.character(mode), "")[[1]])[-1]
+    param$logitRho <- c(0,0,0)
+    param$logitRho[idx==0]<- -10
+    addmap<-1:3
+    addmap[idx==0] <- NA
+    map=addToMap(list(logitRho=factor(addmap)),map)
 
+    param$mu <- numeric(ncol(data$Y))
+    param$logSdProc <- c(0,0)
+    
+    param$logSdObs <- numeric(ncol(data$Y))
+    param$omega <- matrix(0,nrow=nrow(data$Y), ncol=ncol(data$Y))
+    param$z <- rep(0,(nrow(Y)-1)+ncol(Y))
+    if(idx[3]==0){ ## no cohort effect
+        map <- addToMap(list(logSdProc=factor(c(1,NA)),z=factor(rep(NA,length(param$z)))),map )
+        param$logSdProc[2] <- -10
+    }
+    param$logitRhoObs <- 0
+    data$trans <- transCode
+    stopifnot(transCode>=0)
+    ran <- c("omega","z")
+  }
+    
   ## run model 
   obj <- MakeADFun(data,param,random=ran, DLL="gmrf1", silent=silent, map=map, ...)
   lower <- rep(-Inf,length(obj$par))
@@ -230,7 +261,8 @@ pdf("res.pdf")
   mod[[length(mod)+1]] <- runit(mode=4, trans=1/3, res=resflag,map=mymap, cut.data=10, label="Mod4-cubrt-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
   mod[[length(mod)+1]] <- runit(mode=4, trans=1/2, res=resflag,map=mymap, cut.data=10, label="Mod4-sqrt-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
   mod[[length(mod)+1]] <- runit(mode=5, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod5-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
-  mod[[length(mod)+1]] <- runit(mode=6, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod6-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
+mod[[length(mod)+1]] <- runit(mode=6, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod6-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
+  mod[[length(mod)+1]] <- runit(mode=4110, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod4-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
 dev.off()
 
 
