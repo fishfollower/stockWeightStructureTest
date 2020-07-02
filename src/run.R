@@ -75,7 +75,7 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
     ran <- NULL
   }
   if(mode==1){    
-    param$logPhi <- c(0,0,0)
+    param$logPhi <- c(-10,-10,-10)
     param$mu <- numeric(ncol(data$Y))
     param$logSdProc <- 0
     param$logSdObs <- numeric(ncol(data$Y))
@@ -191,7 +191,7 @@ jitfun <- function(fit,n=10){
     out<- t(sapply(fits,function(x)c(x$par,nll=x$objective, conv=x$conv)))
     options(width=200)
     cat(fit$label,"\n",file="jit.tab", append=TRUE)
-    cat(sub("^[1-9]*","  ",capture.output(as.data.frame(out))), file = 'jit.tab', append=TRUE, sep = '\n')
+    cat(sub("^[0-9]*","  ",capture.output(as.data.frame(out))), file = 'jit.tab', append=TRUE, sep = '\n')
   }
   res
 }
@@ -204,19 +204,20 @@ resflag<-FALSE
 pdf("res.pdf")
   mod <- list()
   mod[[length(mod)+1]] <- runit(mode=0, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod0-log-constVar")
-  ##mod[[length(mod)+1]] <- runit(mode=1, res=TRUE, map=mymap, cut.data=10, label="Mod1-identity-constVar")
   mod[[length(mod)+1]] <- runit(mode=1, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod1-log-constVar")
-  ##mod[[length(mod)+1]] <- runit(mode=2, res=TRUE, map=mymap, cut.data=10, label="Mod2-identity-constantVar")
+  mod[[length(mod)+1]] <- runit(mode=1, trans=0, res=resflag, map=c(mymap, list(logPhi=factor(c(NA,1,2)))), cut.data=10, label="Mod1noPhi1-log-constVar")
+  mod[[length(mod)+1]] <- runit(mode=1, trans=0, res=resflag, map=c(mymap, list(logPhi=factor(c(1,NA,2)))), cut.data=10, label="Mod1noPhi2-log-constVar")
+  mod[[length(mod)+1]] <- runit(mode=1, trans=0, res=resflag, map=c(mymap, list(logPhi=factor(c(1,2,NA)))), cut.data=10, label="Mod1noPhi3-log-constVar")
+  mod[[length(mod)+1]] <- runit(mode=1, trans=0, res=resflag, map=c(mymap, list(logPhi=factor(c(1,NA,NA)))), cut.data=10, label="Mod1Phi1-log-constVar")
+  mod[[length(mod)+1]] <- runit(mode=1, trans=0, res=resflag, map=c(mymap, list(logPhi=factor(c(NA,1,NA)))), cut.data=10, label="Mod1Phi2-log-constVar")
+  mod[[length(mod)+1]] <- runit(mode=1, trans=0, res=resflag, map=c(mymap, list(logPhi=factor(c(NA,NA,1)))), cut.data=10, label="Mod1Phi3-log-constVar")
   mod[[length(mod)+1]] <- runit(mode=2, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod2-log-constVar")
-  ##mod[[length(mod)+1]] <- runit(mode=3, res=TRUE, map=mymap, cut.data=10, label="Mod3-identity-constVar")
   mod[[length(mod)+1]] <- runit(mode=3, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod3-log-constVar")
   mod[[length(mod)+1]] <- runit(mode=4, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod4-log-constVar")
   mod[[length(mod)+1]] <- runit(mode=4, trans=1/3, res=resflag,map=mymap, cut.data=10, label="Mod4-cubrt-constVar")
   mod[[length(mod)+1]] <- runit(mode=4, trans=1/2, res=resflag,map=mymap, cut.data=10, label="Mod4-sqrt-constVar")
   mod[[length(mod)+1]] <- runit(mode=5, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod5-log-constVar")
   mod[[length(mod)+1]] <- runit(mode=6, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod6-log-constVar")
-
-
 dev.off()
 
 
@@ -236,5 +237,5 @@ res<-cbind(res,do.call(rbind,cv),round(jit,3))
 names(res)<-c("Label", "-logLik", "AICc","AIC","Conv all", "RMSE-CV", "Conv rate CV", "jit")
 
 options(width=200)
-cat(sub("^[1-9]*","  ",capture.output(res)), file = 'res.tab', sep = '\n')
+cat(sub("^[0-9]*","  ",capture.output(res)), file = 'res.tab', sep = '\n')
 options(width=80)
