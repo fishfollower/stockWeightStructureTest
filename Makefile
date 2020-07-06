@@ -21,10 +21,10 @@ src/gmrf1.so: src/gmrf1.cpp
 
 compile: src/gmrf1.so
 
-res.pdf: Y.tab ../../src/gmrf1.cpp ../../src/run.R
+res.pdf: Y.tab ../../src/gmrf1.so ../../src/run.R 
 	echo 'source("../../src/run.R")' | R --slave
 
-$(resfiles): src/gmrf1.cpp src/run.R $(datfiles)
+$(resfiles): src/gmrf1.so src/run.R $(datfiles)
 	@$(MAKE) -C $(@D) -i -s -f ../../Makefile res.pdf
 
 run: $(resfiles)
