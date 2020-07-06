@@ -5,6 +5,9 @@ dyn.load(dynlib("lm"))
 data <- list()
 data$x <- runif(1000, 0,10)
 data$Y <- 1*data$x+2+rnorm(1000)+5
+lam<-2
+data$Y<-(lam*data$Y+1)^(1/lam)
+
 
 param <- list()
 param$alpha <- 0

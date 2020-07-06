@@ -12,7 +12,7 @@ Type objective_function<Type>::operator() ()
   Type lambda = exp(logLambda);
   vector<Type> Ytrans=(pow(Y,lambda)-1)/lambda;
   Type nll = -sum(dnorm(Ytrans, alpha*x+beta, sigma, true));
-  nll += -sum(vector<Type>(log(pow(Y,lambda-Type(1))/lambda)));
+  nll += -sum(vector<Type>(log(pow(Y,lambda-Type(1)))));
   ADREPORT(lambda);
   return nll;
 }
