@@ -1,6 +1,6 @@
 library(TMB)
 # compile 
-compile("../../src/gmrf1.cpp")
+#compile("../../src/gmrf1.cpp")
 dyn.load(dynlib("../../src/gmrf1"))
 
 cat("###################\n",getwd(),"\n#####################")
