@@ -404,5 +404,56 @@ Type objective_function<Type>::operator() ()
     }
     ADREPORT(pred);
   }
+
+  if(mode==10){ // GMRF with neighbors in year, age, and cohort direction with box-cox  
+    DATA_MATRIX(Wr)
+    DATA_MATRIX(Wc)
+    DATA_MATRIX(Wd)
+    DATA_ARRAY(Y)
+    DATA_ARRAY_INDICATOR(keep,Y);
+    matrix<Type> pred(Y.dim[0],Y.dim[1]);
+    
+    PARAMETER_VECTOR(logPhi)
+    PARAMETER_VECTOR(mu)
+    PARAMETER(logSdProc)   
+    PARAMETER_VECTOR(logSdObs)   
+    PARAMETER_MATRIX(z)
+    PARAMETER(logLamBC)
+    vector<Type> phi=exp(logPhi);
+    Type lamBC = exp(logLamBC);
+    array<Type> Ytrans=Y*0;
+    for(int i=0; i<Y.dim[0]; ++i){
+      for(int j=0; j<Y.dim[1]; ++j){
+        Ytrans(i,j)=(pow(Y(i,j),lamBC)-1)/lamBC;
+	if(!isNA(Ytrans(i,j))){
+          nll += -log(pow(Y(i,j),lamBC-Type(1)));
+	}
+      }
+    }
+    matrix<Type> I(Wr.rows(),Wr.cols());
+    I.setIdentity();
+
+    matrix<Type> Q=I-phi(0)*Wr-phi(1)*Wc-phi(2)*Wd;
+    
+    using namespace density;
+    nll += SCALE(GMRF(asSparseMatrix(Q)),exp(logSdProc))(z.vec());
+
+    for(int i=0; i<Ytrans.dim[0]; ++i){
+      for(int j=0; j<Ytrans.dim[1]; ++j){
+        pred(i,j)=z(i,j)+mu(j);
+        if(!isNA(Ytrans(i,j))){
+          nll += -dnorm(Ytrans(i,j),pred(i,j),exp(logSdObs(j)),true)*keep(i,j);
+        }
+      }
+    }
+
+    for(int i=0; i<Ytrans.dim[0]; ++i){
+      for(int j=0; j<Ytrans.dim[1]; ++j){
+        pred(i,j)=pow(lamBC*pred(i,j)+Type(1),Type(1)/lamBC);
+      }
+    }
+    
+    ADREPORT(pred);
+  }
   return(nll);
 }
