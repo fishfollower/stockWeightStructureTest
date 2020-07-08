@@ -81,7 +81,14 @@ for( i in 1:length(stocks) ){
         write.table(matur[goodYears,goodAges],file=paste0(thedir,"/Mo.tab"),row.names=FALSE,col.names=FALSE)
 
         write.table(Z[goodYears,goodAges],file=paste0(thedir,"/Z.tab"),row.names=FALSE,col.names=FALSE)
+
+        onemat = matrix(1,nrow(Z),ncol(Z))
+        Cpred <- exp(logF)/Z*(onemat-exp(-Z))*exp(logN)
+        write.table(Cpred[goodYears,goodAges],file=paste0(thedir,"/C.tab"),row.names=FALSE,col.names=FALSE)
+        
         cat("done.\n")
         matplot(sw,main=stocks[i],axes=FALSE)
+
+        
     }   
 }
