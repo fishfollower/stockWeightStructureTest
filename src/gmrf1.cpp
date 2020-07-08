@@ -78,13 +78,12 @@ Type objective_function<Type>::operator() ()
       for(int j=0; j<Y.dim[1]; ++j){
         pred(i,j)=z(i,j)+mu(j);
         if(!isNA(Y(i,j))){
-          nll += -dnorm(Y(i,j),pred(i,j),exp(logSdObs(j)),true)*keep(i,j);
+          nll += -dnorm(Y(i,j),pred(i,j),exp(logSdObs(j))+1.0e-5,true)*keep(i,j);
         }
       }
     }
     ADREPORT(pred);
   }
-
   
   if(mode==2){ // AR(time)xAR(age)+added cohort effect  
     DATA_MATRIX(Wr)
@@ -455,5 +454,42 @@ Type objective_function<Type>::operator() ()
     
     ADREPORT(pred);
   }
+
+  if(mode==11){ // GMRF with neighbors in year, age, and cohort direction  
+    DATA_MATRIX(Wr)
+    DATA_MATRIX(Wc)
+    DATA_MATRIX(Wd)
+    DATA_ARRAY(Y)
+    DATA_ARRAY_INDICATOR(keep,Y);
+    matrix<Type> pred(Y.dim[0],Y.dim[1]);
+    
+    PARAMETER_VECTOR(logPhi)
+    PARAMETER_VECTOR(mu)
+    PARAMETER(logSdProc)   
+    PARAMETER_VECTOR(logSdObs)   
+    PARAMETER_MATRIX(z)
+    vector<Type> phi=exp(logPhi);
+    
+    matrix<Type> I(Wr.rows(),Wr.cols());
+    I.setIdentity();
+
+    matrix<Type> Q=I-phi(0)*Wc-phi(1)*Wd;
+    
+    using namespace density;
+    nll += SCALE(GMRF(asSparseMatrix(Q)),exp(logSdProc))(z.vec());
+
+    for(int i=0; i<Y.dim[0]; ++i){
+      for(int j=0; j<Y.dim[1]; ++j){
+        pred(i,j)=z(i,j)+mu(j);
+        if(!isNA(Y(i,j))){
+          nll += -dnorm(Y(i,j),pred(i,j),exp(logSdObs(j))+1.0e-5,true)*keep(i,j);
+        }
+      }
+    }
+    ADREPORT(pred);
+  }
+
+
+  
   return(nll);
 }
