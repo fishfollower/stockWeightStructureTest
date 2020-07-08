@@ -217,8 +217,18 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
   upper[ grep("^logit",pn) ] <- upperLogit
     
     
-  opt <- nlminb(obj$par, obj$fn, obj$gr,lower=lower,upper=upper)
-  sdr <- sdreport(obj)
+  #opt <- nlminb(obj$par, obj$fn, obj$gr,lower=lower,upper=upper)
+
+
+  opt <- nlminb(obj$par, obj$fn,obj$gr ,control=list(trace=1, eval.max=2000, iter.max=1000, rel.tol=1e-10),lower=lower,upper=upper)
+  #for(i in seq_len(newtonsteps)) { # Take a few extra newton steps 
+  #  g <- as.numeric( obj$gr(opt$par) )
+  #  h <- optimHess(opt$par, obj$fn, obj$gr)
+  #  opt$par <- opt$par - solve(h, g)
+  #  opt$objective <- obj$fn(opt$par)
+  #}
+  
+  sdr <- sdreport(obj, opt$par)
   pred <- as.list(sdr, report=TRUE, what="Est")$pred
   predSd <- as.list(sdr, report=TRUE, what="Std")$pred
 
