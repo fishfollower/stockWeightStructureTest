@@ -78,7 +78,7 @@ Type objective_function<Type>::operator() ()
       for(int j=0; j<Y.dim[1]; ++j){
         pred(i,j)=z(i,j)+mu(j);
         if(!isNA(Y(i,j))){
-          nll += -dnorm(Y(i,j),pred(i,j),exp(logSdObs(j))+1.0e-5,true)*keep(i,j);
+          nll += -dnorm(Y(i,j),pred(i,j),exp(logSdObs(j)),true)*keep(i,j);
         }
       }
     }
@@ -482,7 +482,7 @@ Type objective_function<Type>::operator() ()
       for(int j=0; j<Y.dim[1]; ++j){
         pred(i,j)=z(i,j)+mu(j);
         if(!isNA(Y(i,j))){
-          nll += -dnorm(Y(i,j),pred(i,j),exp(logSdObs(j))+1.0e-5,true)*keep(i,j);
+          nll += -dnorm(Y(i,j),pred(i,j),exp(logSdObs(j)),true)*keep(i,j);
         }
       }
     }
