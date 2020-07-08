@@ -272,7 +272,7 @@ Type objective_function<Type>::operator() ()
     }  
   }
 
-  if(mode==5){ // as model 1, but with correlated errors
+  if(mode==5){ // as model 11, but with correlated errors
 
     DATA_MATRIX(Wr)
     DATA_MATRIX(Wc)
@@ -292,13 +292,13 @@ Type objective_function<Type>::operator() ()
     matrix<Type> I(Wr.rows(),Wr.cols());
     I.setIdentity();
 
-    matrix<Type> Q=I-phi(0)*Wr-phi(1)*Wc-phi(2)*Wd;
+    matrix<Type> Q=I-phi(0)*Wc-phi(1)*Wd;
     
     using namespace density;
     nll += SCALE(GMRF(asSparseMatrix(Q)),exp(logSdProc))(z.vec());
 
     Type rhoObs = invlogit(logitRhoObs);
-    vector<Type> sdObs = exp(logSdObs);
+    vector<Type> sdObs = exp(logSdObs) +1.0e-5;
     int nA = Y.dim[1];
     matrix<Type> covObs(nA,nA);
     for(int i=0;i<nA;i++)

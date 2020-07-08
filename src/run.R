@@ -136,12 +136,12 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
     ran <- c("omega","z")
   }
   if(mode==5){
-    param$logPhi <- c(0,0,0)
+    param$logPhi <- c(0,0)
     param$mu <- numeric(ncol(data$Y))
     param$logSdProc <- 0
     param$logSdObs <- numeric(ncol(data$Y))
     param$z <- matrix(0,nrow=nrow(data$Y), ncol=ncol(data$Y))
-    param$logitRhoObs <- 0
+    param$logitRhoObs <- -1
     ran <- c("z")  
   }
   if(mode==6){
@@ -284,7 +284,7 @@ pdf("res.pdf")
   mod <- list()
   mod[[length(mod)+1]] <- runit(mode=0, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod0-log-constVar")
   #mod[[length(mod)+1]] <- runit(mode=1, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod1-log-constVar")
-  mod[[length(mod)+1]] <- runit(mode=1011, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod1noPhi1-log-constVar")
+  #mod[[length(mod)+1]] <- runit(mode=1011, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod1noPhi1-log-constVar")
   mod[[length(mod)+1]] <- runit(mode=11, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod11-log-constVar")
   #mod[[length(mod)+1]] <- runit(mode=1101, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod1noPhi2-log-constVar")
   #mod[[length(mod)+1]] <- runit(mode=1110, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod1noPhi3-log-constVar")
@@ -303,16 +303,10 @@ pdf("res.pdf")
   #mod[[length(mod)+1]] <- runit(mode=4, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod4-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
   #mod[[length(mod)+1]] <- runit(mode=4, trans=1/3, res=resflag,map=mymap, cut.data=10, label="Mod4-cubrt-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
   #mod[[length(mod)+1]] <- runit(mode=4, trans=1/2, res=resflag,map=mymap, cut.data=10, label="Mod4-sqrt-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
-  #mod[[length(mod)+1]] <- runit(mode=5, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod5-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
+  mod[[length(mod)+1]] <- runit(mode=5, trans=0, res=resflag,map=c(mymap,list(logitRhoObs=factor(NA))), cut.data=10, label="Mod5-log-constVar")
   #mod[[length(mod)+1]] <- runit(mode=6, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod6-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
   #mod[[length(mod)+1]] <- runit(mode=4110, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod4-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
 dev.off()
-
-
-
-dat <- read.table("Y.tab", head=FALSE)
-mymap <- list(logSdObs=factor(rep(1,ncol(dat))))
-
 
 res <- as.data.frame(do.call(rbind, lapply(mod, function(m)c(m$label, round(m$logLik,2), round(m$AICc,2), round(m$AIC,2), m$conv))))
 

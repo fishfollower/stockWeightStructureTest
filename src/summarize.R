@@ -16,6 +16,10 @@ sumtab = apply(ares,c(2,3),FUN=sum)
 meantab = apply(ares,c(2,3),FUN=mean)
 
 colnames(sumtab) <- colnames(meantab) <- colnames(restabs[[1]])[numcols]
+rownames(sumtab) <- rownames(meantab) <- restabs[[1]]$Label
+
+cat("meantab:\n")
+print(meantab)
 
 write.table(sumtab,"../sumtab.txt")
 write.table(meantab,"../meantab.txt")
