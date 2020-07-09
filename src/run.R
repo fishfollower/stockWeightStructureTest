@@ -97,8 +97,8 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
     param$logPhi[idx==0]<- -10
     addmap<-1:3
     addmap[idx==0] <- NA
-    map<- addToMap(list(logPhi=factor(addmap)),map)
-    param$mu <- numeric(ncol(data$Y))
+    map<- addToMap(list(logPhi=factor(addmap)),map) 
+    param$mu <- colMeans(data$Y, na.rm=TRUE)#numeric(ncol(data$Y))
     param$logSdProc <- 0
     param$logSdObs <- numeric(ncol(data$Y))
     param$z <- matrix(0,nrow=nrow(data$Y), ncol=ncol(data$Y))
@@ -106,7 +106,7 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
   }
   if(mode==11){    
     param$logPhi <- c(0,0)
-    param$mu <- numeric(ncol(data$Y))
+    param$mu <- colMeans(data$Y, na.rm=TRUE)#numeric(ncol(data$Y))
     param$logSdProc <- 0
     param$logSdObs <- numeric(ncol(data$Y))
     param$z <- matrix(0,nrow=nrow(data$Y), ncol=ncol(data$Y))
@@ -220,8 +220,8 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
   #opt <- nlminb(obj$par, obj$fn, obj$gr,lower=lower,upper=upper)
 
 
-  opt <- nlminb(obj$par, obj$fn,obj$gr ,control=list(trace=1, eval.max=2000, iter.max=1000, rel.tol=1e-10),lower=lower,upper=upper)
-  #for(i in seq_len(newtonsteps)) { # Take a few extra newton steps 
+  opt <- nlminb(obj$par, obj$fn,obj$gr ,control=list(eval.max=2000, iter.max=1000, rel.tol=1e-10),lower=lower,upper=upper)
+  #for(i in seq_len(3)) { # Take a few extra newton steps 
   #  g <- as.numeric( obj$gr(opt$par) )
   #  h <- optimHess(opt$par, obj$fn, obj$gr)
   #  opt$par <- opt$par - solve(h, g)
@@ -313,7 +313,7 @@ pdf("res.pdf")
   #mod[[length(mod)+1]] <- runit(mode=4, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod4-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
   #mod[[length(mod)+1]] <- runit(mode=4, trans=1/3, res=resflag,map=mymap, cut.data=10, label="Mod4-cubrt-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
   #mod[[length(mod)+1]] <- runit(mode=4, trans=1/2, res=resflag,map=mymap, cut.data=10, label="Mod4-sqrt-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
-  mod[[length(mod)+1]] <- runit(mode=5, trans=0, res=resflag,map=c(mymap,list(logitRhoObs=factor(NA))), cut.data=10, label="Mod5-log-constVar")
+  #mod[[length(mod)+1]] <- runit(mode=5, trans=0, res=resflag,map=c(mymap,list(logitRhoObs=factor(NA))), cut.data=10, label="Mod5-log-constVar")
   #mod[[length(mod)+1]] <- runit(mode=6, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod6-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
   #mod[[length(mod)+1]] <- runit(mode=4110, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod4-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
 dev.off()
