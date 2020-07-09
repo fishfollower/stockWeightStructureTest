@@ -203,7 +203,19 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
     param$logLamBC <- 0
     ran <- c("z")
   }
-
+  if(mode%in% c(120,121)){
+    data$mode <- 12
+    data$expIt <- mode %% 2  
+    param$logitRho <- c(0,0)
+    param$mu <- log(  pmax(diff(c(0,colMeans(data$Y,na.rm=TRUE))),1e-3) )  ##numeric(ncol(data$Y))
+    ##if(data$expIt==0) param$mu <- exp(param$mu)
+    
+    param$logSdProc <- c(0)
+    param$logSdObs <- numeric(ncol(data$Y))
+    param$omega <- matrix(0,nrow=nrow(data$Y)+ncol(data$Y), ncol=ncol(data$Y))
+    ran <- c("omega")
+  }
+  
     
     
   ## run model 
@@ -303,9 +315,12 @@ pdf("res.pdf")
   #mod[[length(mod)+1]] <- runit(mode=4, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod4-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
   #mod[[length(mod)+1]] <- runit(mode=4, trans=1/3, res=resflag,map=mymap, cut.data=10, label="Mod4-cubrt-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
   #mod[[length(mod)+1]] <- runit(mode=4, trans=1/2, res=resflag,map=mymap, cut.data=10, label="Mod4-sqrt-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
-  mod[[length(mod)+1]] <- runit(mode=5, trans=0, res=resflag,map=c(mymap,list(logitRhoObs=factor(NA))), cut.data=10, label="Mod5-log-constVar")
+  ##mod[[length(mod)+1]] <- runit(mode=5, trans=0, res=resflag,map=c(mymap,list(logitRhoObs=factor(NA))), cut.data=10, label="Mod5-log-constVar")
   #mod[[length(mod)+1]] <- runit(mode=6, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod6-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
   #mod[[length(mod)+1]] <- runit(mode=4110, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod4-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
+ mod[[length(mod)+1]] <- runit(mode=121, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod12.1-log-constVar")
+ mod[[length(mod)+1]] <- runit(mode=120, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod12.0-log-constVar")
+
 dev.off()
 
 res <- as.data.frame(do.call(rbind, lapply(mod, function(m)c(m$label, round(m$logLik,2), round(m$AICc,2), round(m$AIC,2), m$conv))))

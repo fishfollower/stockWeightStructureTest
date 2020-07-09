@@ -37,7 +37,7 @@ printcases:
 allrestab:
 	cat $(resfiles2) > allrestab.txt
 
-sumtab.txt: $(resfiles)
+sumtab.txt: $(resfiles) src/summarize.R
 	cd src; echo 'source("summarize.R")' | R --slave
 
 summary: sumtab.txt 
