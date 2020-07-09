@@ -327,8 +327,8 @@ pdf("res.pdf")
   #mod[[length(mod)+1]] <- runit(mode=4, trans=1/2, res=resflag,map=mymap, cut.data=10, label="Mod4-sqrt-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
   #mod[[length(mod)+1]] <- runit(mode=6, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod6-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
   #mod[[length(mod)+1]] <- runit(mode=4110, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod4-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
- mod[[length(mod)+1]] <- runit(mode=121, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod12.1-log-constVar")
- mod[[length(mod)+1]] <- runit(mode=120, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod12.0-log-constVar")
+ mod[[length(mod)+1]] <- runit(mode=121, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod12.1-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-5, upperLogit=5)
+ mod[[length(mod)+1]] <- runit(mode=120, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod12.0-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-5, upperLogit=5)
 
 dev.off()
 
