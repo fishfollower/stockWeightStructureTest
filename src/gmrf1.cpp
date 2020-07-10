@@ -526,8 +526,6 @@ Type objective_function<Type>::operator() ()
     }
     matrix<Type> predExt(od,nA);
 
-    for(int i=0; i<od; i++) predExt(i,0) = exp(mu(0)); 
-
     // initial conditions
     if(expIt==1){
       for(int i=0; i<od; i++) predExt(i,0) = exp(mu(0));
@@ -562,6 +560,85 @@ Type objective_function<Type>::operator() ()
     ADREPORT(pred);
   }
 
+  if(mode==14){ // As 12 but using N's
+    DATA_MATRIX(Wr)
+    DATA_MATRIX(Wc)
+    DATA_MATRIX(Wd)
+    DATA_ARRAY(Y)  
+    DATA_ARRAY_INDICATOR(keep,Y);
+    DATA_INTEGER(expIt);
+    DATA_ARRAY(N);
+    int nY = Y.dim[0];
+    int nA = Y.dim[1];
+    
+    matrix<Type> pred(Y.dim[0],Y.dim[1]);
+    
+    PARAMETER_VECTOR(logitRho)
+    PARAMETER_VECTOR(mu)
+    PARAMETER_VECTOR(logSdProc)
+      
+    PARAMETER_VECTOR(logSdObs)   
+    PARAMETER_ARRAY(omega)
+    PARAMETER_VECTOR(lalpha);
+
+    vector<Type> alpha=exp(lalpha);
+    vector<Type> rho=invlogit(logitRho);
+    using namespace density;
+    nll += SCALE(SEPARABLE(AR1(rho(1)),AR1(rho(0))),exp(logSdProc(0)))(omega);
+
+    int od = nY + nA;
+    matrix<Type> dW(od,nA);
+    dW.setZero();
+        
+    for(int i=0; i<od; i++){
+      for(int j=0; j<nA; j++){
+	if(expIt==1){
+	  dW(i,j) = exp( omega(i,j) + mu(j) );
+	} else {
+	  dW(i,j) = omega(i,j) + mu(j);
+	}
+      }
+    }
+    matrix<Type> predExt(od,nA);
+
+    // initial conditions
+    if(expIt==1){
+      for(int i=0; i<od; i++) predExt(i,0) = exp(mu(0));
+      for(int j=1; j<nA; j++) predExt(0,j) = predExt(0,j-1) + exp(mu(j));
+      for(int i=0; i<od; i++) predExt(i,0) = predExt(i,0)*exp(omega(i,0));
+      for(int j=1; j<nA; j++) predExt(0,j) = predExt(0,j)*exp(omega(0,j));
+    } else {
+      for(int i=0; i<od; i++) predExt(i,0) = mu(0);
+      for(int j=1; j<nA; j++) predExt(0,j) = predExt(0,j-1) + mu(j);
+      for(int i=0; i<od; i++) predExt(i,0) = predExt(i,0) + omega(i,0);
+      for(int j=1; j<nA; j++) predExt(0,j) = predExt(0,j) + omega(0,j);
+    }
+    
+    for(int i=1; i<od; i++){
+      for(int j=1; j<nA; j++){
+	if(i<nA){
+	  predExt(i,j) = predExt(i-1,j-1) + dW(i,j);
+	} else {
+	  predExt(i,j) = predExt(i-1,j-1) + dW(i,j)*exp(-alpha(j-1)*log(N(i-nA,j)+1));
+	}
+      }
+    }
+    
+    for(int i=0; i<Y.dim[0]; ++i){
+      for(int j=0; j<Y.dim[1]; ++j){
+	if(expIt==1){
+	  pred(i,j) = log(predExt(i+nA,j)); // + lalpha(j)*log(N(i,j)); 
+	} else {
+	  pred(i,j) = predExt(i+nA,j); // + lalpha(j)*log(N(i,j));  
+	}
+        if(!isNA(Y(i,j))){
+          nll += -dnorm(Y(i,j),pred(i,j),exp(logSdObs(j)),true)*keep(i,j);
+        }
+      }
+    }
+    ADREPORT(pred);
+  }
+  
 
   
   return(nll);
