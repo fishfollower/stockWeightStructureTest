@@ -112,6 +112,13 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
     param$z <- matrix(0,nrow=nrow(data$Y), ncol=ncol(data$Y))
     ran <- c("z")
   }
+  if(mode==13){    
+    param$logPhi <- c(0,0)
+    param$mu <- colMeans(data$Y, na.rm=TRUE)#numeric(ncol(data$Y))
+    param$logSdProc <- 0
+    param$missing <- rep(0,sum(is.na(data$Y)))
+    ran <- c("missing")
+  }
   if(mode==2){    
     param$logitRho <- c(0,0,0)
     param$mu <- numeric(ncol(data$Y))
@@ -320,6 +327,8 @@ pdf("res.pdf")
   #mod[[length(mod)+1]] <- runit(mode=1, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod1-log-constVar")
   #mod[[length(mod)+1]] <- runit(mode=1011, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod1noPhi1-log-constVar")
   #mod[[length(mod)+1]] <- runit(mode=11, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod11-log-constVar")
+  mod[[length(mod)+1]] <- runit(mode=11, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod11-log-constVar")
+  mod[[length(mod)+1]] <- runit(mode=13, trans=0, res=resflag, cut.data=10, label="Mod13-log-constVar")
   #mod[[length(mod)+1]] <- runit(mode=1101, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod1noPhi2-log-constVar")
   #mod[[length(mod)+1]] <- runit(mode=1110, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod1noPhi3-log-constVar")
   #mod[[length(mod)+1]] <- runit(mode=1100, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod1Phi1-log-constVar")
@@ -339,12 +348,14 @@ pdf("res.pdf")
   #mod[[length(mod)+1]] <- runit(mode=4, trans=1/2, res=resflag,map=mymap, cut.data=10, label="Mod4-sqrt-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
   #mod[[length(mod)+1]] <- runit(mode=6, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod6-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
   #mod[[length(mod)+1]] <- runit(mode=4110, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod4-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
- mod[[length(mod)+1]] <- runit(mode=121, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod12.1-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-5, upperLogit=5)
-mod[[length(mod)+1]] <- runit(mode=120, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod12.0-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-5, upperLogit=5)
+  #mod[[length(mod)+1]] <- runit(mode=121, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod12.1-log-constVar")
+  #mod[[length(mod)+1]] <- runit(mode=120, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod12.0-log-constVar")
+  mod[[length(mod)+1]] <- runit(mode=121, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod12.1-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-5, upperLogit=5)
+  mod[[length(mod)+1]] <- runit(mode=120, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod12.0-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-5, upperLogit=5)
 
 ##mod[[length(mod)+1]] <- runit(mode=141, trans=0, res=resflag, map=list(logSdObs=factor(rep(NA,ncol(dat)))), cut.data=10, label="Mod14.1-log-constVar", lowerLog=-10, upperLog=5, lowerLogit=-5, upperLogit=5)
 ##mod[[length(mod)+1]] <- runit(mode=140, trans=0, res=resflag, map=list(logSdObs=factor(rep(NA,ncol(dat)))), cut.data=10, label="Mod14.0-log-constVar", lowerLog=-10, upperLog=5, lowerLogit=-5, upperLogit=5)
-mod[[length(mod)+1]] <- runit(mode=140, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod14.0-log-constVar", lowerLog=-10, upperLog=5, lowerLogit=-5, upperLogit=5)
+ #mod[[length(mod)+1]] <- runit(mode=140, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod14.0-log-constVar", lowerLog=-10, upperLog=5, lowerLogit=-5, upperLogit=5)
 
 dev.off()
 

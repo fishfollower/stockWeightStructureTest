@@ -560,6 +560,47 @@ Type objective_function<Type>::operator() ()
     ADREPORT(pred);
   }
 
+  if(mode==13){ // GMRF with neighbors in age, and cohort direction no obs error 
+    DATA_MATRIX(Wr)
+    DATA_MATRIX(Wc)
+    DATA_MATRIX(Wd)
+    DATA_ARRAY(Y)
+    DATA_ARRAY_INDICATOR(keep,Y)
+    matrix<Type> pred(Y.dim[0],Y.dim[1]);
+    
+    PARAMETER_VECTOR(logPhi)
+    PARAMETER_VECTOR(mu)
+    PARAMETER(logSdProc)   
+    PARAMETER_VECTOR(missing)
+    matrix<Type> z(Y.dim[0],Y.dim[1]); z.setZero();
+    vector<Type> phi=exp(logPhi);
+    matrix<Type> I(Wr.rows(),Wr.cols());
+    I.setIdentity();
+    matrix<Type> Q=I-phi(0)*Wc-phi(1)*Wd;
+
+    int misCount=0;
+    for(int i=0; i<Y.dim[0]; ++i){
+      for(int j=0; j<Y.dim[1]; ++j){
+        if(!isNA(Y(i,j))){
+          z(i,j)=Y(i,j)-mu(j); 
+        }else{
+          z(i,j)=missing(misCount++)-mu(j); 
+	}
+      }
+    }
+    
+    using namespace density;
+    nll += SCALE(GMRF(asSparseMatrix(Q)),exp(logSdProc))(z.vec());
+
+    for(int i=0; i<Y.dim[0]; ++i){
+      for(int j=0; j<Y.dim[1]; ++j){
+        pred(i,j)=z(i,j)+mu(j);
+      }
+    }
+    ADREPORT(pred);
+  }
+
+  
   if(mode==14){ // As 12 but using N's
     DATA_MATRIX(Wr)
     DATA_MATRIX(Wc)
@@ -639,7 +680,6 @@ Type objective_function<Type>::operator() ()
     ADREPORT(pred);
   }
   
-
   
   return(nll);
 }
