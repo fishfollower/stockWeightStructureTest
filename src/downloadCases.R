@@ -34,7 +34,7 @@ for( i in 1:length(stocks) ){
         orig.ages <- colnames(sw)
         logN <- t(fit$pl$logN)
         matur <- fit$data$propMat
-        logM <- fit$data$natMor
+        logM <- log(fit$data$natMor)
         if(all(fit$conf$keyLogFsta>=0)){
             logF <- t(fit$pl$logF)[,fit$conf$keyLogFsta+1]
         } else { ## not all F's are used => set to zero
