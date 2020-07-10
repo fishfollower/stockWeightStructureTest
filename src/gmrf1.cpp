@@ -720,47 +720,61 @@ Type objective_function<Type>::operator() ()
     ADREPORT(pred);
   }
 
-  if(mode==16){ // GMRF with neighbors in age, and cohort direction no obs error 
-    DATA_MATRIX(Wr)
-    DATA_MATRIX(Wc)
-    DATA_MATRIX(Wd)
-    DATA_ARRAY(Y)
-    DATA_ARRAY(N)
-    DATA_ARRAY(Y)
-    DATA_ARRAY_INDICATOR(keep,Y)
-    matrix<Type> pred(Y.dim[0],Y.dim[1]);
-    
-    PARAMETER_VECTOR(logPhi)
-    PARAMETER_VECTOR(mu)
-    PARAMETER(logSdProc)   
-    PARAMETER_VECTOR(missing)
-    matrix<Type> z(Y.dim[0],Y.dim[1]); z.setZero();
-    vector<Type> phi=exp(logPhi);
-    matrix<Type> I(Wr.rows(),Wr.cols());
-    I.setIdentity();
-    matrix<Type> Q=I-phi(0)*Wc-phi(1)*Wd;
-
-    int misCount=0;
-    for(int i=0; i<Y.dim[0]; ++i){
-      for(int j=0; j<Y.dim[1]; ++j){
-        if(!isNA(Y(i,j))){
-          z(i,j)=Y(i,j)-mu(j); 
-        }else{
-          z(i,j)=missing(misCount++)-mu(j); 
-	}
-      }
-    }
-    
-    using namespace density;
-    nll += SCALE(GMRF(asSparseMatrix(Q)),exp(logSdProc))(z.vec());
-
-    for(int i=0; i<Y.dim[0]; ++i){
-      for(int j=0; j<Y.dim[1]; ++j){
-        pred(i,j)=z(i,j)+mu(j);
-      }
-    }
-    ADREPORT(pred);
-  }
+  //if(mode==16){ // GMRF with neighbors in age, and cohort direction no obs error 
+  //  DATA_MATRIX(Wr)
+  //  DATA_MATRIX(Wc)
+  //  DATA_MATRIX(Wd)
+  //  DATA_ARRAY(Y)
+  //  DATA_ARRAY(logN)
+  //  DATA_ARRAY(Z)
+  //  DATA_ARRAY_INDICATOR(keep,Y)
+  //  matrix<Type> pred(Y.dim[0],Y.dim[1]);
+  //  
+  //  PARAMETER_VECTOR(logPhi)
+  //  PARAMETER_VECTOR(mu)
+  //  PARAMETER(logSdProc)
+  //  PARAMETER_VECTOR(logSdLogN) 
+  //  PARAMETER_VECTOR(missing)
+  //  matrix<Type> z(Y.dim[0],Y.dim[1]); z.setZero();
+  //  vector<Type> phi=exp(logPhi);
+  //  matrix<Type> I(Wr.rows(),Wr.cols());
+  //  I.setIdentity();
+  //  matrix<Type> Q=I-phi(0)*Wc-phi(1)*Wd;
+  //
+  //  int nrow=logN.dim[0];
+  //  int ncol=logN.dim[1];
+  //  Type predN;
+  //  for(int y=1; y<nrow; ++y){
+  //    predN=logN(y-1,0);
+  //    nll += -dnorm(logN(y,0),predN,exp(logSdLogN(0)),true)
+  //    for(int a=1; a<ncol; ++a){
+  //      predN=logN(y-1,a-1)-Z(y-1,a-1);
+  //      if(a==(ncol-1)){
+  //        predN=log(exp(predN)+exp(logN(y-1,a)-N(y-1,a)));
+  //      }
+  //      jnll += -dnorm(logN(y,a),predN,exp(logSdLogN(1)),true);
+  //    }
+  //  }
+  //
+  //
+  //  
+  //  int misCount=0;
+  //  for(int i=0; i<Y.dim[0]; ++i){
+  //    for(int j=0; j<Y.dim[1]; ++j){
+  //      if(!isNA(Y(i,j))){
+  //        z(i,j)=Y(i,j)-mu(j); 
+  //      }else{
+  //        z(i,j)=missing(misCount++)-mu(j); 
+  //	}
+  //	pred(i,j)=z(i,j)+mu(j);
+  //    }
+  //  }
+  //  
+  //  using namespace density;
+  //  nll += SCALE(GMRF(asSparseMatrix(Q)),exp(logSdProc))(z.vec());
+  //
+  //  ADREPORT(pred);
+  //}
 
   
   return(nll);

@@ -28,6 +28,7 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
 
   Yorg <- as.matrix(read.table("Y.tab", head=FALSE))
   Norg <- as.matrix(read.table("N.tab", head=FALSE))
+  Zorg <- as.matrix(read.table("Z.tab", head=FALSE))
   Moorg <- as.matrix(read.table("Mo.tab", head=FALSE))
   Yorg[abs(Yorg)<1.0e-12] <- NA
   Y <- trans(Yorg)
@@ -127,6 +128,17 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
     param$missing <- rep(0,sum(is.na(data$Y)))
     ran <- c("missing")
   }
+  #if(mode==16){
+  #  data$logN<-log(Norg)
+  #  data$Z<-Zorg  
+  #  param$logPhi <- c(0,0)
+  #  param$mu <- colMeans(data$Y, na.rm=TRUE)#numeric(ncol(data$Y))
+  #  param$logSdProc <- 0
+  #  param$logSdLogN <- c(0,0)
+  #  param$missing <- rep(0,sum(is.na(data$Y)))
+  #  ran <- c("missing")
+  #}
+
   if(mode==2){    
     param$logitRho <- c(0,0,0)
     param$mu <- numeric(ncol(data$Y))
