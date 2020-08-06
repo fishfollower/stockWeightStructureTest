@@ -775,7 +775,56 @@ Type objective_function<Type>::operator() ()
   //
   //  ADREPORT(pred);
   //}
+  if(mode==17){  // VonB type model
+    DATA_MATRIX(Wr);
+    DATA_MATRIX(Wc);
+    DATA_MATRIX(Wd);
+    DATA_ARRAY(Y);
+    DATA_VECTOR(SSB);
+    DATA_ARRAY_INDICATOR(keep,Y);
+    matrix<Type> pred(Y.dim[0],Y.dim[1]);
+    
+    PARAMETER(logWinf);
+    PARAMETER(logk);
+    PARAMETER(logitRho0);
+    PARAMETER_VECTOR(logSdObs);
+    PARAMETER(logalpha); // density dependence
+    PARAMETER_VECTOR(logitRho1); //
+    PARAMETER_VECTOR(logSdOmega);
+    PARAMETER_VECTOR(omegaw); // Winf deviations
+    PARAMETER_VECTOR(omegak); // k deviations
 
+    // Priors
+    nll -= dnorm(logSdOmega(0),Type(-3),Type(3),true);
+    nll -= dnorm(logSdOmega(1),Type(-3),Type(3),true);
+    
+    Type rho0 = invlogit(logitRho0);
+    Type rho1 = invlogit(logitRho1(0));
+    Type rho2 = invlogit(logitRho1(1));
+    
+    Type alpha = exp(logalpha);
+    
+    
+    using namespace density;
+    nll += SCALE(AR1(rho1),exp(logSdOmega(0)))(omegaw);
+    nll += SCALE(AR1(rho2),exp(logSdOmega(1)))(omegak);
+    
+    
+    for(int i=0; i<Y.dim[0]; ++i){
+      for(int j=0; j<Y.dim[1]; ++j){
+	int cohort = i - j + Y.dim[1] - 1;
+	Type Winfc  = exp(logWinf - alpha*SSB(i) + omegaw(cohort));
+	Type kc = exp(logk + omegak(cohort));
+        pred(i,j) = log(Winfc) + Type(3)*log(Type(1) - (Type(1) - rho0)*exp(-kc*Type(j)));  //log(Winf*pow(Type(1) - exp(-k*(j-t0)),3));
+	  
+        if(!isNA(Y(i,j))){
+          nll += -dnorm(Y(i,j),pred(i,j),exp(logSdObs(j)),true)*keep(i,j);
+        }
+      }
+    }
+    ADREPORT(pred);
+    
+  }
   
   return(nll);
 }

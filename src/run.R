@@ -45,6 +45,7 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
     Norg<-Norg[1:(nrow(Norg)-cut),]
     Moorg<-Moorg[1:(nrow(Moorg)-cut),]      
   }
+  SSBorg<-rowSums(Yorg*Norg*Moorg)
   jac <- -sum(log(abs(numDeriv:::grad(trans,Yorg[!is.na(Y)]))))
   
   r <- as.vector(row(Y))
@@ -255,8 +256,20 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
     param$lalpha <- rep(-5,ncol(data$Y)-1)
     ran <- c("omega")
   }
-    
-    
+     
+  if(mode==17){
+    data$SSB <- SSBorg / mean(SSBorg)
+    param$logWinf <- max(data$Y,na.rm=TRUE)
+    param$logk <- log(0.1)
+    param$logitRho0 <- 0
+    param$logSdObs <- numeric(ncol(data$Y))
+    param$logalpha <- -5
+    param$logitRho1 <- c(10,10) ## Random walk
+    param$logSdOmega <- c(-2,-2)
+    param$omegak<- param$omegaw <- numeric(nrow(data$Y)+ncol(data$Y)) 
+    ran <- c("omegaw","omegak")
+    map<- addToMap(list(logitRho1=factor(c(NA,NA))),map)
+  }  
   ## run model 
   obj <- MakeADFun(data,param,random=ran, DLL="gmrf1", silent=silent, map=map, ...)
   lower <- rep(-Inf,length(obj$par))
@@ -303,7 +316,6 @@ runit <- function(mode=1, transCode=-1, res=FALSE, label=NULL, predict=0, cut=pr
     boxplot(residual)   
   }
     
-  SSBorg<-rowSums(Yorg*Norg*Moorg)
   SSBpred<-rowSums(invtrans(pred)*Norg*Moorg)    
   conv<-(all(is.finite(summary.sdreport(sdr, "fixed")[,2])))&(opt$convergence==0)
   if(!conv)warning("Convergence issue")  
@@ -369,14 +381,14 @@ pdf("res.pdf")
   #mod[[length(mod)+1]] <- runit(mode=4, trans=1/2, res=resflag,map=mymap, cut.data=10, label="Mod4-sqrt-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
   #mod[[length(mod)+1]] <- runit(mode=6, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod6-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
   #mod[[length(mod)+1]] <- runit(mode=4110, trans=0, res=resflag,map=mymap, cut.data=10, label="Mod4-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-4, upperLogit=4)
-  #mod[[length(mod)+1]] <- runit(mode=121, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod12.1-log-constVar")
-  #mod[[length(mod)+1]] <- runit(mode=120, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod12.0-log-constVar")
-  #mod[[length(mod)+1]] <- runit(mode=121, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod12.1-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-5, upperLogit=5)
-  #mod[[length(mod)+1]] <- runit(mode=120, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod12.0-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-5, upperLogit=5)
+  ##mod[[length(mod)+1]] <- runit(mode=121, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod12.1-log-constVar")
+  ##mod[[length(mod)+1]] <- runit(mode=120, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod12.0-log-constVar")
+  mod[[length(mod)+1]] <- runit(mode=121, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod12.1-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-5, upperLogit=5)
+  mod[[length(mod)+1]] <- runit(mode=120, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod12.0-log-constVar", lowerLog=-5, upperLog=5, lowerLogit=-5, upperLogit=5)
   ##mod[[length(mod)+1]] <- runit(mode=141, trans=0, res=resflag, map=list(logSdObs=factor(rep(NA,ncol(dat)))), cut.data=10, label="Mod14.1-log-constVar", lowerLog=-10, upperLog=5, lowerLogit=-5, upperLogit=5)
   ##mod[[length(mod)+1]] <- runit(mode=140, trans=0, res=resflag, map=list(logSdObs=factor(rep(NA,ncol(dat)))), cut.data=10, label="Mod14.0-log-constVar", lowerLog=-10, upperLog=5, lowerLogit=-5, upperLogit=5)
  #mod[[length(mod)+1]] <- runit(mode=140, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod14.0-log-constVar", lowerLog=-10, upperLog=5, lowerLogit=-5, upperLogit=5)
-
+  ##mod[[length(mod)+1]] <- runit(mode=17, trans=0, res=resflag, map=mymap, cut.data=10, label="Mod17-log-constVar",lowerLog=-8)
 dev.off()
 
 res <- as.data.frame(do.call(rbind, lapply(mod, function(m)c(m$label, round(m$logLik,2), round(m$AICc,2), round(m$AIC,2), m$conv))))
