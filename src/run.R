@@ -329,6 +329,20 @@ cv.rmse <- function(year=10, cv.scale=identity, ...){
     ret
 }
 
+cv2.rmse <- function(year=10, cv.scale=identity, ...){
+    sq.error<-function(p){fit<-runit(...,predict=p, cut=p-2); c((tail(cv.scale(fit$ssbobs),1)-tail(cv.scale(fit$ssbpred),1))^2,as.integer(fit$conv))}
+    ret<-rowMeans(Vectorize(sq.error)((1:year)+1))
+    ret[1]<-sqrt(ret[1])
+    ret
+}
+
+cv3.rmse <- function(year=10, cv.scale=identity, ...){
+    sq.error<-function(p){fit<-runit(...,predict=p, cut=p-3); c((tail(cv.scale(fit$ssbobs),1)-tail(cv.scale(fit$ssbpred),1))^2,as.integer(fit$conv))}
+    ret<-rowMeans(Vectorize(sq.error)((1:year)+2))
+    ret[1]<-sqrt(ret[1])
+    ret
+}
+
 jitfun <- function(fit,n=10){
   lower <- rep(-Inf,length(fit$obj$par))
   upper <- rep(Inf,length(fit$obj$par))  
@@ -396,11 +410,17 @@ res <- as.data.frame(do.call(rbind, lapply(mod, function(m)c(m$label, round(m$lo
 cv<-lapply(mod, function(m)cv.rmse(year=10, cv.scale=log, mode=m$call$mode, transCode=m$call$transCode, label=m$label, cut.data=m$call$cut.data, map=m$call$map,
                                    lowerLog=m$call$lowerLog, upperLog=m$call$upperLog, lowerLogit=m$call$lowerLogit, upperLogit=m$call$upperLogit))
 
+cv2<-lapply(mod, function(m)cv2.rmse(year=10, cv.scale=log, mode=m$call$mode, transCode=m$call$transCode, label=m$label, cut.data=m$call$cut.data, map=m$call$map,
+                                   lowerLog=m$call$lowerLog, upperLog=m$call$upperLog, lowerLogit=m$call$lowerLogit, upperLogit=m$call$upperLogit))
+
+cv3<-lapply(mod, function(m)cv3.rmse(year=10, cv.scale=log, mode=m$call$mode, transCode=m$call$transCode, label=m$label, cut.data=m$call$cut.data, map=m$call$map,
+                                   lowerLog=m$call$lowerLog, upperLog=m$call$upperLog, lowerLogit=m$call$lowerLogit, upperLogit=m$call$upperLogit))
+
 jit <- sapply(mod, function(m)jitfun(m))
 
-res<-cbind(res,do.call(rbind,cv),round(jit,3))
+res<-cbind(res,do.call(rbind,cv),do.call(rbind,cv2),do.call(rbind,cv3),round(jit,3))
 
-names(res)<-c("Label", "nlogLik", "AICc","AIC","Conv_all", "RMSE-CV", "Conv_rate_CV", "jit")
+names(res)<-c("Label", "nlogLik", "AICc","AIC","Conv_all", "RMSE-CV", "Conv_rate_CV", "RMSE-CV2", "Conv_rate_CV2", "RMSE-CV3", "Conv_rate_CV3", "jit")
 
 options(width=200)
 cat(sub("^[0-9]*","  ",capture.output(res)), file = 'res.tab', sep = '\n')
